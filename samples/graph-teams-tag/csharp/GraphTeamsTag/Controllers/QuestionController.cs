@@ -67,7 +67,7 @@ public class QuestionController : Controller
             Members = new ChatMembersCollectionPage(),
         };
 
-        foreach (var member in members)
+        foreach (var member in members.Where(m => m.UserId != request.RequesterUserId))
         {
             chat.Members.Add(new AadUserConversationMember
             {
