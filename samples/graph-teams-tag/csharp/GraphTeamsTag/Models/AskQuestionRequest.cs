@@ -10,6 +10,8 @@ public class AskQuestionRequest : IValidatableObject
 {
     public string Tag { get; set; }
 
+    public string QuestionTopic { get; set; }
+
     public string Question { get; set; }
 
     public string TeamId { get; set; }
@@ -22,6 +24,8 @@ public class AskQuestionRequest : IValidatableObject
     public bool Email { get; set; }
 
     public QuestionTarget QuestionTarget { get; set; }
+
+    public string RequesterUserId { get; set;  }
 
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
     {
