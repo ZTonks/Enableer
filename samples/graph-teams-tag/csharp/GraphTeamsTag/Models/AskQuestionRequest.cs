@@ -34,11 +34,24 @@ public class AskQuestionRequest : IValidatableObject
             yield return new ValidationResult("Tag is required", new string[] { nameof(Tag) });
         }
 
+        if (string.IsNullOrWhiteSpace(QuestionTopic))
+        {
+            yield return new ValidationResult("Topic is required", new string[] { nameof(QuestionTopic) });
+        }
+
         if (string.IsNullOrWhiteSpace(Question))
         {
             yield return new ValidationResult("Question is required", new string[] { nameof(Question) });
         }
+
+        if (string.IsNullOrWhiteSpace(RequesterUserId))
+        {
+            yield return new ValidationResult("Requester is required", new string[] { nameof(RequesterUserId) });
+        }
+
+        if (TargetsOnlineUsers && Email)
+        {
+            yield return new ValidationResult("Cannot target online users for emails", new string[] { nameof(Email), nameof(TargetsOnlineUsers) });
+        }
     }
 }
-
-

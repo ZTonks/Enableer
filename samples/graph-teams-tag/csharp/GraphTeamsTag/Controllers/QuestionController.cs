@@ -30,7 +30,7 @@ public class QuestionController : Controller
     [HttpPost("")]
     public async Task<IActionResult> AskQuestion(
         [FromQuery] string ssoToken,
-        AskQuestionRequest request)
+        [FromBody] AskQuestionRequest request)
     {
         var token = await SSOAuthHelper.GetAccessTokenOnBehalfUserAsync(_configuration, _httpClientFactory, _httpContextAccessor, ssoToken);
         var graphClient = SimpleGraphClient.GetGraphClient(token);
@@ -45,7 +45,7 @@ public class QuestionController : Controller
             {
                 var userPresence = await graphClient.Users[member.UserId].Presence.Request().GetAsync();
 
-                if (userPresence.Availability != "Available")
+                if (userPresence.Availability == "Available")
                 {
                     onlineMembers.Add(member);
                 }
@@ -63,6 +63,7 @@ public class QuestionController : Controller
         var chat = new Chat
         {
             ChatType = request.QuestionTarget == QuestionTarget.All ? ChatType.Group : ChatType.OneOnOne,
+            Topic = request.QuestionTopic,
         };
 
         foreach (var member in members)
@@ -71,20 +72,44 @@ public class QuestionController : Controller
             {
                 Roles = new List<string>()
                 {
-                    "owner"
+                    "member"
                 },
                 AdditionalData = new Dictionary<string, object>()
                 {
                     {"user@odata.bind", $"https://graph.microsoft.com/v1.0/users('{member.UserId}')"}
                 }
-            }
-            );
+            });
         }
 
-        chat.Messages
+        chat.Members.Add(new AadUserConversationMember
+        {
+            Roles = new List<string>()
+            {
+                "owner"
+            },
+            AdditionalData = new Dictionary<string, object>()
+            {
+                {"user@odata.bind", $"https://graph.microsoft.com/v1.0/users('{request.RequesterUserId}')"}
+            }
+        });
 
-        var response = await graphClient.Chats.Request().AddAsync(chat);
+        chat.Messages.Add(new ChatMessage
+        {
+             Body = new ItemBody
+             {
+                 Content = request.Question,
+                 ContentType = BodyType.Text,
+             }
+        });
 
-        return Ok();
+        var chatResponse = await graphClient.Chats.Request().AddAsync(chat);
+
+        var reponse = new AskQuestionResponse
+        {
+            ChatId = chatResponse.Id,
+            ResponseUsers = members.Select(m => m.DisplayName).ToArray(),
+        };
+
+        return Ok(reponse);
     }
 }
