@@ -64,6 +64,7 @@ public class QuestionController : Controller
         {
             ChatType = request.QuestionTarget == QuestionTarget.All ? ChatType.Group : ChatType.OneOnOne,
             Topic = request.QuestionTopic,
+            Members = new ChatMembersCollectionPage(),
         };
 
         foreach (var member in members)
