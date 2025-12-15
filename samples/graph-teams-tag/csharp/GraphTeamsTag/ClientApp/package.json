@@ -6,12 +6,13 @@
   "license": "MIT",
   "dependencies": {
     "@fluentui/react-northstar": "^0.63.1",
+    "@microsoft/teams-js": "^2.35.0",
     "axios": "^0.21.1",
+    "caniuse-lite": "^1.0.30001760",
     "react": "18.2.0",
     "react-dom": "18.2.0",
     "react-router-dom": "6.4.3",
-    "react-scripts": "^5.0.1",
-    "@microsoft/teams-js": "^2.35.0"
+    "react-scripts": "^5.0.1"
   },
   "scripts": {
     "start": "react-scripts start",

@@ -1,0 +1,46 @@
+{
+    "$schema": "https://developer.microsoft.com/json-schemas/teams/v1.24/MicrosoftTeams.schema.json",
+    "manifestVersion": "1.24",
+    "version": "1.0.0",
+    "id": "ecc68c2d-525f-4397-aa5c-814a18906f72",
+    "developer": {
+        "name": "Microsoft",
+        "websiteUrl": "https://www.microsoft.com",
+        "privacyUrl": "https://www.teams.com/privacy",
+        "termsOfUseUrl": "https://www.teams.com/termsofuser"
+    },
+    "icons": {
+        "color": "color.png",
+        "outline": "outline.png"
+    },
+    "name": {
+        "short": "Enableer",
+        "full": "Enableer"
+    },
+    "description": {
+        "short": "Does some cool stuff",
+        "full": "Does some cool stuff but longer"
+    },
+    "accentColor": "#5558AF",
+    "configurableTabs": [
+        {
+            "configurationUrl": "https://localhost:44302/configure",
+            "canUpdateConfiguration": true,
+            "scopes": [
+                "team",
+                "groupChat"
+            ]
+        }
+    ],
+    "permissions": [
+        "identity",
+        "messageTeamMembers"
+    ],
+    "validDomains": [
+        "localhost:44302"
+    ],
+    "webApplicationInfo": {
+        "id": "a2f3c132-60f1-43d3-9649-29d3d0f45aa0",
+        "resource": "api://localhost:44302/a2f3c132-60f1-43d3-9649-29d3d0f45aa0"
+    }
+}

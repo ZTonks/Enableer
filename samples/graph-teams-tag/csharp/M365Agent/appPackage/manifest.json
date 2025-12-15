@@ -1,6 +1,6 @@
 ﻿{
-  "$schema": "https://developer.microsoft.com/json-schemas/teams/v1.19/MicrosoftTeams.schema.json",
-  "manifestVersion": "1.19",
+  "$schema": "https://developer.microsoft.com/json-schemas/teams/v1.24/MicrosoftTeams.schema.json",
+  "manifestVersion": "1.24",
   "version": "1.0.0",
   "id": "${{TEAMS_APP_ID}}",
   "developer": {
@@ -14,12 +14,12 @@
     "outline": "outline.png"
   },
   "name": {
-    "short": "Manage Team Tags",
-    "full": "Manage Team Tags"
+    "short": "Enableer",
+    "full": "Enableer"
   },
   "description": {
-    "short": "Sample app for CRUD operations on team tags using Microsoft Graph API.",
-    "full": "This sample application demonstrates how to perform CRUD operations on team tags using Microsoft Graph API within a Microsoft Teams tab."
+    "short": "Does some cool stuff",
+    "full": "Does some cool stuff but longer"
   },
   "accentColor": "#5558AF",
   "configurableTabs": [
