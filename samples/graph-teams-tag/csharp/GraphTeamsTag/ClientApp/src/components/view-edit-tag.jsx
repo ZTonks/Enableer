@@ -8,6 +8,7 @@ import { Flex, FlexItem, ChevronStartIcon, Text, TextArea, TrashCanIcon, Input, 
 import * as microsoftTeams from "@microsoft/teams-js";
 import DashboardState from "../models/dashboard-state";
 import axios from "axios";
+import "../style/style.css";
 
 // Display the tags information
 const ViewEditTag = props => {
@@ -158,7 +159,7 @@ const ViewEditTag = props => {
             <Flex vAlign="center">
                 <Text size="large" content="Members" style={{ marginTop: "1rem" }} />
                 {props.dashboardState === DashboardState.Edit && <FlexItem push>
-                    <Button content="Select members to add" text onClick={onUpdateMembers} />
+                    <Button content="Select members to add" text onClick={onUpdateMembers} className="enableer-button-secondary" />
                 </FlexItem>}
             </Flex>
             {isMemberLoading ? <Loader />: elements}
@@ -275,7 +276,7 @@ const ViewEditTag = props => {
                     <div>
                         {!isNoteDisabled && <Flex gap="gap.medium">
                             <Text content='Click on "Update" button to update the fields.' temporary error />
-                            <Button content="Update" primary disabled={isUpdateButtonLoading} isUpdateButtonLoading={isUpdateButtonLoading} onClick={onUpdateButtonClick} />
+                            <Button content="Update" primary disabled={isUpdateButtonLoading} isUpdateButtonLoading={isUpdateButtonLoading} onClick={onUpdateButtonClick} className="enableer-button-primary" />
                         </Flex>}
                     </div>
                 </FlexItem>

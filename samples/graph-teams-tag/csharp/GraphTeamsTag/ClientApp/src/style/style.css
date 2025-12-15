@@ -7,15 +7,16 @@
     border-radius: 8px;
     padding: 0.9rem;
     box-shadow: 0 2px 5px 0 rgb(0 0 0 / 20%), 0 6px 20px 0 rgb(0 0 0 / 19%);
+    background-color: var(--colour-background-base);
 }
 
 .manage-icons {
     cursor: pointer;
+    color: var(--colour-icon-base-default);
 }
 
 .manage-icons:hover {
-    color: #5b5fc7;
-    background-color: "#5B00C7";
+    color: var(--colour-icon-hover);
 }
 
 .text-fields-label {
@@ -24,4 +25,217 @@
 
 .input-fields-label {
     width: 160px;
+}
+
+:root {
+    /* Primary Colors */
+    --colour-primary-soft: #eff8ec;
+    --colour-primary-light: #34B233;
+    --colour-primary-base: #178816;
+    --colour-primary-dark-hover: #1a5919;
+    --colour-primary-hard-focus: #113b11;
+
+    /* Secondary Colors */
+    --colour-secondary-soft: #eff4fe;
+    --colour-secondary-light: #495d74;
+    --colour-secondary-base: #2f4460;
+    --colour-secondary-dark-hover: #00234b;
+    --colour-secondary-hard-focus: #141e2e;
+
+    /* Tertiary Colors */
+    --colour-tertiary-soft: #ebf0f5;
+    --colour-tertiary-light: #d3d9db;
+    --colour-tertiary-base: #aebdbf;
+    --colour-tertiary-dark-hover: #5a6f72;
+    --colour-tertiary-hard-focus: #2d3839;
+
+    /* Status Colors */
+    --colour-status-success-base: #178816;
+    --colour-status-info-base: #2f4460;
+    --colour-status-warning-base: #b85600;
+    --colour-status-error-base: #bc403c;
+
+    /* Backgrounds */
+    --colour-background-base: #ffffff;
+    --colour-background-secondary: #ebf0f5;
+
+    /* Text */
+    --colour-text-base: #000000;
+    --colour-text-secondary: #2f4460;
+    --colour-text-contrast: #ffffff;
+
+    /* Icons */
+    --colour-icon-base-default: #000000;
+    --colour-icon-hover: #34B233;
+}
+
+/* Global Typography and Base Styles */
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    color: var(--colour-text-base);
+}
+
+/* Enableer Page Container - for pages other than Dashboard */
+.enableer-page-container {
+    padding: 2rem;
+    background-color: var(--colour-background-base);
+    min-height: 100vh;
+}
+
+/* Button Overrides/Styles */
+.enableer-button {
+    padding: 0.5rem 1rem;
+    border-radius: 0.25rem;
+    border: none;
+    cursor: pointer;
+    font-weight: 600;
+    transition: background-color 0.2s;
+    font-family: inherit;
+}
+
+.enableer-button-primary {
+    background-color: var(--colour-primary-base);
+    color: var(--colour-text-contrast);
+}
+
+.enableer-button-primary:hover {
+    background-color: var(--colour-primary-dark-hover);
+}
+
+.enableer-button-secondary {
+    background-color: var(--colour-secondary-base);
+    color: var(--colour-text-contrast);
+}
+
+.enableer-button-secondary:hover {
+    background-color: var(--colour-secondary-dark-hover);
+}
+
+.enableer-back-button {
+    background-color: transparent;
+    color: var(--colour-secondary-base);
+    border: 1px solid var(--colour-secondary-base);
+    padding: 0.5rem 1rem;
+    border-radius: 0.25rem;
+    cursor: pointer;
+    margin-bottom: 1rem;
+    display: inline-block;
+}
+
+.enableer-back-button:hover {
+    background-color: var(--colour-secondary-soft);
+}
+
+/* Dashboard Specifics */
+.enableer-dashboard {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    background-color: var(--colour-background-base);
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    color: var(--colour-text-base);
+    position: relative;
+}
+
+.enableer-header {
+    display: flex;
+    justify-content: flex-end;
+    padding: 1rem;
+}
+
+.enableer-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex-grow: 1;
+    max-width: 800px;
+    margin: 0 auto;
+    width: 100%;
+    padding: 2rem;
+    box-sizing: border-box;
+}
+
+.enableer-logo {
+    font-size: 3rem;
+    font-weight: bold;
+    color: var(--colour-primary-base);
+    margin-bottom: 2rem;
+}
+
+.enableer-input-container {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    background-color: var(--colour-background-base);
+    border: 1px solid var(--colour-tertiary-light);
+    border-radius: 0.75rem;
+    padding: 1rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.enableer-textarea {
+    width: 100%;
+    min-height: 100px;
+    border: none;
+    resize: none;
+    font-family: inherit;
+    font-size: 1rem;
+    outline: none;
+    color: var(--colour-text-base);
+}
+
+.enableer-textarea::placeholder {
+    color: var(--colour-tertiary-dark-hover);
+}
+
+.enableer-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-top: 0.5rem;
+}
+
+.enableer-controls-left {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+}
+
+.enableer-select {
+    padding: 0.5rem;
+    border-radius: 0.25rem;
+    border: 1px solid var(--colour-tertiary-light);
+    color: var(--colour-text-secondary);
+}
+
+.enableer-checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--colour-text-secondary);
+    cursor: pointer;
+}
+
+.enableer-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.configure-button {
+    background-color: transparent;
+    color: var(--colour-secondary-base);
+    border: 1px solid var(--colour-secondary-base);
+    padding: 0.5rem 1rem;
+    border-radius: 0.25rem;
+    cursor: pointer;
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.configure-button:hover {
+    background-color: var(--colour-secondary-soft);
 }

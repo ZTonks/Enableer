@@ -6,6 +6,7 @@ import {
 } from 'react-router-dom';
 import Configure from "../components/configure";
 import Dashboard from "../components/dashboard";
+import ManageTags from "../components/manage-tags";
 import CreateTag from "../components/create-tag";
 
 export const AppRoute = () => {
@@ -15,6 +16,7 @@ export const AppRoute = () => {
                 <Routes>
                     <Route path="/configure" element={<Configure />}/>
                     <Route path="/dashboard" element={<Dashboard />}/>
+                    <Route path="/manage-tags" element={<ManageTags />}/>
                     <Route path="/create-new-tag" element={<CreateTag />}/>
                 </Routes>
             </BrowserRouter>

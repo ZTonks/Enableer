@@ -123,7 +123,7 @@ const CreateTag = props => {
     }
 
     return (
-        <Flex className="container" vAlign="center" gap="gap.medium" column>
+        <Flex className="enableer-page-container" vAlign="center" gap="gap.medium" column>
             <Text content="Create tag" size="large" weight="semibold" />
 
             <Flex column gap="gap.small" className="input-container">
@@ -138,7 +138,7 @@ const CreateTag = props => {
                 <Flex vAlign="center">
                     <Text content="Members to be added" weight="semibold" style={{ marginTop: "1rem" }} />
                     <FlexItem push>
-                        <Button content="Select members" onClick={onUpdateMembers} />
+                        <Button content="Select members" onClick={onUpdateMembers} className="enableer-button-secondary" />
                     </FlexItem>
                 </Flex>
                 <Text temporary content="You will be added by default"/>
@@ -147,7 +147,7 @@ const CreateTag = props => {
 
             <Flex>
                 <FlexItem push>
-                    <Button primary content="Create" onClick={onCreateTagButtonClick}/>
+                    <Button primary content="Create" onClick={onCreateTagButtonClick} className="enableer-button-primary"/>
                 </FlexItem>
             </Flex>
         </Flex>
