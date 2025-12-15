@@ -73,7 +73,7 @@ namespace GraphTeamsTag.Controllers
 
         /// <summary>
         /// Create team tag.
-        /// </summary>
+        /// /// </summary>
         /// <param name="teamId">Id of team.</param>
         /// <param name="teamTag">Details of the tag to be created.</param>
         /// <returns>If success return 201 status code, otherwise 500 status code</returns>
@@ -204,8 +204,8 @@ namespace GraphTeamsTag.Controllers
         /// <param name="teamId">Id of the team.</param>
         /// <param name="tagId">Id of the tag.</param>
         /// <returns>If success return 200 status code, otherwise 500 status code</returns>
-        [HttpGet("tag/members")]
-        public async Task<IActionResult> GetTeamworkTagMembersAsync([FromQuery] string ssoToken, string teamId, string tagId)
+        [HttpGet("{teamId}/tag/{tagId}/members")]
+        public async Task<IActionResult> GetTeamworkTagMembersAsync([FromQuery] string ssoToken, [FromRoute] string teamId, [FromRoute] string tagId)
         {
             try
             {
@@ -246,8 +246,8 @@ namespace GraphTeamsTag.Controllers
         /// <param name="teamId">Id of team.</param>
         /// <param name="tagId">Id of tag to be deleted.</param>
         /// <returns></returns>
-        [HttpDelete("tag")]
-        public async Task<IActionResult> DeleteTeamTagAsync([FromQuery] string ssoToken, string teamId, string tagId)
+        [HttpDelete("")]
+        public async Task<IActionResult> DeleteTeamTagAsync([FromQuery] string ssoToken, [FromQuery] string teamId, [FromQuery] string tagId)
         {
             try
             {
