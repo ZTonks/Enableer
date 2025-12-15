@@ -1,6 +1,11 @@
 ﻿using System.Net.Http.Headers;
 using Microsoft.Graph;
-using Microsoft.Identity.Client;
+using Azure.Identity;
+using Microsoft.Kiota.Abstractions.Authentication;
+using System.Threading.Tasks;
+using System.Collections.Generic;
+using System.Threading;
+using System;
 
 namespace GraphTeamsTag
 {
@@ -9,51 +14,34 @@ namespace GraphTeamsTag
         // Get graph client based on access token.
         public static GraphServiceClient GetGraphClient(string accessToken)
         {
-            var graphClient = new GraphServiceClient(new DelegateAuthenticationProvider((requestMessage) =>
-            {
-                requestMessage.Headers.Authorization = new AuthenticationHeaderValue("bearer", accessToken);
-
-                requestMessage.Headers.Add("Prefer", "outlook.timezone=\"" + TimeZoneInfo.Local.Id + "\"");
-
-                return Task.CompletedTask;
-            }));
-
+            var authenticationProvider = new BaseBearerTokenAuthenticationProvider(new TokenProvider(accessToken));
+            var graphClient = new GraphServiceClient(authenticationProvider);
             return graphClient;
         }
 
         // Get graph client based on application configuration.
         public static GraphServiceClient GetGraphClientforApp(string appId, string appPassword, string tenantId)
         {
-            var graphClient = new GraphServiceClient(new DelegateAuthenticationProvider((requestMessage) =>
-            {
-                // get an access token for Graph
-                var accessToken = GetAccessToken(appId, appPassword, tenantId).Result;
-
-                requestMessage
-                    .Headers
-                    .Authorization = new AuthenticationHeaderValue("bearer", accessToken);
-
-                return Task.FromResult(0);
-            }));
-
+            var clientSecretCredential = new ClientSecretCredential(tenantId, appId, appPassword);
+            var graphClient = new GraphServiceClient(clientSecretCredential);
             return graphClient;
         }
+    }
 
+    public class TokenProvider : IAccessTokenProvider
+    {
+        private string _accessToken;
 
-        // Get the access token based on application configuration.
-        private static async Task<string> GetAccessToken(string appId, string appPassword, string tenantId)
+        public TokenProvider(string accessToken)
         {
-            IConfidentialClientApplication app = ConfidentialClientApplicationBuilder.Create(appId)
-              .WithClientSecret(appPassword)
-              .WithAuthority($"https://login.microsoftonline.com/{tenantId}")
-              .WithRedirectUri("https://daemon")
-              .Build();
-
-            string[] scopes = new string[] { "https://graph.microsoft.com/.default" };
-
-            var result = await app.AcquireTokenForClient(scopes).ExecuteAsync();
-
-            return result.AccessToken;
+            _accessToken = accessToken;
         }
+
+        public Task<string> GetAuthorizationTokenAsync(Uri uri, Dictionary<string, object>? additionalAuthenticationContext = default, CancellationToken cancellationToken = default)
+        {
+            return Task.FromResult(_accessToken);
+        }
+
+        public AllowedHostsValidator AllowedHostsValidator { get; } = new AllowedHostsValidator();
     }
 }

@@ -8,6 +8,9 @@ namespace GraphTeamsTag.Controllers
     using GraphTeamsTag.Models;
     using Microsoft.AspNetCore.Mvc;
     using Microsoft.Graph;
+    using Microsoft.Graph.Models;
+    using System.Threading.Tasks;
+    using System.Collections.Generic;
 
     [Route("api/teamtag")]
     [ApiController]
@@ -106,7 +109,6 @@ namespace GraphTeamsTag.Controllers
                 var token = await SSOAuthHelper.GetAccessTokenOnBehalfUserAsync(_configuration, _httpClientFactory, _httpContextAccessor, ssoToken);
                 var graphClient = SimpleGraphClient.GetGraphClient(token);
                 var teamworkTag = await graphClient.Teams[teamId].Tags[teamTagId]
-                .Request()
                 .GetAsync();
 
                 var teamwTagDto = new TeamTag
@@ -138,36 +140,29 @@ namespace GraphTeamsTag.Controllers
                 var token = await SSOAuthHelper.GetAccessTokenOnBehalfUserAsync(_configuration, _httpClientFactory, _httpContextAccessor, ssoToken);
                 var graphClient = SimpleGraphClient.GetGraphClient(token);
 
-                var tags = await graphClient.Teams[teamId].Tags.Request().GetAsync();
+                var tagsResponse = await graphClient.Teams[teamId].Tags.GetAsync();
                 var teamworkTagList = new List<TeamTag>();
-                do
+                
+                if (tagsResponse?.Value != null)
                 {
-                    IEnumerable<TeamworkTag> teamTagCurrentPage = tags.CurrentPage;
-
-                    foreach (var tag in teamTagCurrentPage)
-                    {
-                        var teamworkTagMembersList = new List<TeamworkTagMember>();
-
-                        teamworkTagList.Add(new TeamTag
+                    var pageIterator = PageIterator<TeamworkTag, TeamworkTagCollectionResponse>.CreatePageIterator(
+                        graphClient,
+                        tagsResponse,
+                        (tag) =>
                         {
-                            Id = tag.Id,
-                            DisplayName = tag.DisplayName,
-                            Description = tag.Description,
-                            MembersCount = tag.MemberCount == null ? 0 : (int)tag.MemberCount,
-                        });
-                    }
+                            teamworkTagList.Add(new TeamTag
+                            {
+                                Id = tag.Id,
+                                DisplayName = tag.DisplayName,
+                                Description = tag.Description,
+                                MembersCount = tag.MemberCount ?? 0,
+                            });
+                            return true;
+                        }
+                    );
 
-                    // If there are more result.
-                    if (tags.NextPageRequest != null)
-                    {
-                        tags = await tags.NextPageRequest.GetAsync();
-                    }
-                    else
-                    {
-                        break;
-                    }
+                    await pageIterator.IterateAsync();
                 }
-                while (tags.CurrentPage != null);
 
                 return this.Ok(teamworkTagList);
             }
@@ -211,25 +206,25 @@ namespace GraphTeamsTag.Controllers
             {
                 var token = await SSOAuthHelper.GetAccessTokenOnBehalfUserAsync(_configuration, _httpClientFactory, _httpContextAccessor, ssoToken);
                 var graphClient = SimpleGraphClient.GetGraphClient(token);
-                var members = await graphClient.Teams[teamId].Tags[tagId].Members
-                 .Request()
+                var membersResponse = await graphClient.Teams[teamId].Tags[tagId].Members
                  .GetAsync();
 
                 var tagMemberList = new List<TeamworkTagMember>();
 
-                do
+                if (membersResponse?.Value != null)
                 {
-                    tagMemberList.AddRange(members.CurrentPage);
-                    if (members.NextPageRequest != null)
-                    {
-                        members = await members.NextPageRequest.GetAsync();
-                    }
-                    else
-                    {
-                        break;
-                    }
+                    var pageIterator = PageIterator<TeamworkTagMember, TeamworkTagMemberCollectionResponse>.CreatePageIterator(
+                        graphClient,
+                        membersResponse,
+                        (member) =>
+                        {
+                            tagMemberList.Add(member);
+                            return true;
+                        }
+                    );
+
+                    await pageIterator.IterateAsync();
                 }
-                while (members.CurrentPage != null);
 
                 return this.Ok(tagMemberList);
             }
@@ -254,7 +249,6 @@ namespace GraphTeamsTag.Controllers
                 var token = await SSOAuthHelper.GetAccessTokenOnBehalfUserAsync(_configuration, _httpClientFactory, _httpContextAccessor, ssoToken);
                 var graphClient = SimpleGraphClient.GetGraphClient(token);
                 await graphClient.Teams[teamId].Tags[tagId]
-                .Request()
                 .DeleteAsync();
                 return this.NoContent();
             }

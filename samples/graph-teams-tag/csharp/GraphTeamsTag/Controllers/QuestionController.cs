@@ -2,115 +2,139 @@
 using GraphTeamsTag.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Graph;
+using Microsoft.Graph.Models;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
-namespace GraphTeamsTag.Controllers;
-
-[Route("api/questions")]
-[ApiController]
-public class QuestionController : Controller
+namespace GraphTeamsTag.Controllers
 {
-    private readonly IConfiguration _configuration;
-    private readonly ILogger<QuestionController> _logger;
-    private readonly IHttpClientFactory _httpClientFactory;
-    private readonly IHttpContextAccessor _httpContextAccessor;
-
-    public QuestionController(
-        ILogger<QuestionController> logger,
-        IConfiguration configuration,
-        IHttpClientFactory httpClientFactory,
-        IHttpContextAccessor httpContextAccessor,
-        GraphHelper graphHelper)
+    [Route("api/questions")]
+    [ApiController]
+    public class QuestionController : Controller
     {
-        _configuration = configuration;
-        _httpClientFactory = httpClientFactory;
-        _httpContextAccessor = httpContextAccessor;
-        _logger = logger;
-    }
+        private readonly IConfiguration _configuration;
+        private readonly ILogger<QuestionController> _logger;
+        private readonly IHttpClientFactory _httpClientFactory;
+        private readonly IHttpContextAccessor _httpContextAccessor;
 
-    [HttpPost("")]
-    public async Task<IActionResult> AskQuestion(
-        [FromQuery] string ssoToken,
-        [FromBody] AskQuestionRequest request)
-    {
-        var token = await SSOAuthHelper.GetAccessTokenOnBehalfUserAsync(_configuration, _httpClientFactory, _httpContextAccessor, ssoToken);
-        var graphClient = SimpleGraphClient.GetGraphClient(token);
-
-        var members = (await graphClient.Teams[request.TeamId].Tags[request.Tag].Members.Request().GetAsync()).ToList();
-
-        if (request.TargetsOnlineUsers)
+        public QuestionController(
+            ILogger<QuestionController> logger,
+            IConfiguration configuration,
+            IHttpClientFactory httpClientFactory,
+            IHttpContextAccessor httpContextAccessor,
+            GraphHelper graphHelper)
         {
-            var onlineMembers = new List<TeamworkTagMember>();
+            _configuration = configuration;
+            _httpClientFactory = httpClientFactory;
+            _httpContextAccessor = httpContextAccessor;
+            _logger = logger;
+        }
 
-            foreach (var member in members)
+        [HttpPost("")]
+        public async Task<IActionResult> AskQuestion(
+            [FromQuery] string ssoToken,
+            [FromBody] AskQuestionRequest request)
+        {
+            var token = await SSOAuthHelper.GetAccessTokenOnBehalfUserAsync(_configuration, _httpClientFactory, _httpContextAccessor, ssoToken);
+            var graphClient = SimpleGraphClient.GetGraphClient(token);
+
+            var membersResponse = await graphClient.Teams[request.TeamId].Tags[request.Tag].Members.GetAsync();
+            var members = new List<TeamworkTagMember>();
+            
+            if (membersResponse?.Value != null)
             {
-                var userPresence = await graphClient.Users[member.UserId].Presence.Request().GetAsync();
-
-                if (userPresence.Availability == "Available")
-                {
-                    onlineMembers.Add(member);
-                }
+                var pageIterator = PageIterator<TeamworkTagMember, TeamworkTagMemberCollectionResponse>.CreatePageIterator(
+                    graphClient,
+                    membersResponse,
+                    (m) => {
+                        members.Add(m);
+                        return true;
+                    }
+                );
+                await pageIterator.IterateAsync();
             }
 
-            members = onlineMembers;
-        }
+            if (request.TargetsOnlineUsers)
+            {
+                var onlineMembers = new List<TeamworkTagMember>();
 
-        if (request.Email)
-        {
-            // ZT TODO
-            return Ok();
-        }
+                foreach (var member in members)
+                {
+                    var userPresence = await graphClient.Users[member.UserId].Presence.GetAsync();
 
-        var chat = new Chat
-        {
-            ChatType = request.QuestionTarget == QuestionTarget.All ? ChatType.Group : ChatType.OneOnOne,
-            Topic = request.QuestionTopic,
-            Members = new ChatMembersCollectionPage(),
-        };
+                    if (userPresence.Availability == "Available")
+                    {
+                        onlineMembers.Add(member);
+                    }
+                }
 
-        foreach (var member in members.Where(m => m.UserId != request.RequesterUserId))
-        {
+                members = onlineMembers;
+            }
+
+            if (request.Email)
+            {
+                // ZT TODO
+                return Ok();
+            }
+
+            var chatType = request.QuestionTarget == QuestionTarget.All ? ChatType.Group : ChatType.OneOnOne;
+            var chat = new Chat
+            {
+                ChatType = chatType,
+                Members = new List<ConversationMember>(),
+                AdditionalData = new Dictionary<string, object>()
+            };
+
+            if (chatType == ChatType.Group)
+            {
+                chat.Topic = request.QuestionTopic;
+            }
+
+            foreach (var member in members.Where(m => m.UserId != request.RequesterUserId))
+            {
+                chat.Members.Add(new AadUserConversationMember
+                {
+                    AdditionalData = new Dictionary<string, object>()
+                    {
+                        {"user@odata.bind", $"https://graph.microsoft.com/v1.0/users('{member.UserId}')"}
+                    },
+                    Roles = new List<string> { "owner" }
+                });
+            }
+            
             chat.Members.Add(new AadUserConversationMember
             {
                 Roles = new List<string>()
                 {
-                    "member"
+                    "owner"
                 },
                 AdditionalData = new Dictionary<string, object>()
                 {
-                    {"user@odata.bind", $"https://graph.microsoft.com/v1.0/users('{member.UserId}')"}
+                    {"user@odata.bind", $"https://graph.microsoft.com/v1.0/users('{request.RequesterUserId}')"}
                 }
             });
+
+            var chatResponse = await graphClient.Chats.PostAsync(chat);
+
+            var chatMessage = new ChatMessage
+            {
+                Body = new ItemBody
+                {
+                    Content = request.Question,
+                    ContentType = BodyType.Text,
+                }
+            };
+            
+            await graphClient.Chats[chatResponse.Id].Messages.PostAsync(chatMessage);
+
+            var reponse = new AskQuestionResponse
+            {
+                ChatId = chatResponse.Id,
+                ResponseUsers = members.Select(m => m.DisplayName).ToArray(),
+            };
+
+            return Ok(reponse);
         }
-
-        chat.Members.Add(new AadUserConversationMember
-        {
-            Roles = new List<string>()
-            {
-                "owner"
-            },
-            AdditionalData = new Dictionary<string, object>()
-            {
-                {"user@odata.bind", $"https://graph.microsoft.com/v1.0/users('{request.RequesterUserId}')"}
-            }
-        });
-
-        chat.Messages.Add(new ChatMessage
-        {
-             Body = new ItemBody
-             {
-                 Content = request.Question,
-                 ContentType = BodyType.Text,
-             }
-        });
-
-        var chatResponse = await graphClient.Chats.Request().AddAsync(chat);
-
-        var reponse = new AskQuestionResponse
-        {
-            ChatId = chatResponse.Id,
-            ResponseUsers = members.Select(m => m.DisplayName).ToArray(),
-        };
-
-        return Ok(reponse);
     }
 }

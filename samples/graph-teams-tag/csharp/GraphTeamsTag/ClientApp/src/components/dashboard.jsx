@@ -12,9 +12,14 @@ import "../style/style.css";
 const Dashboard = () => {
     const navigate = useNavigate();
     const [question, setQuestion] = useState("");
+    const [subject, setSubject] = useState("");
     const [selectedTag, setSelectedTag] = useState("");
     const [onlyOnline, setOnlyOnline] = useState(false);
     const [tags, setTags] = useState([]);
+    const [teamId, setTeamId] = useState("");
+    const [userId, setUserId] = useState("");
+    const [token, setToken] = useState("");
+    const [targetType, setTargetType] = useState("1");
     
     useEffect(() => {
         const initTeams = async () => {
@@ -23,11 +28,16 @@ const Dashboard = () => {
                 microsoftTeams.app.notifySuccess();
                 
                 const context = await microsoftTeams.app.getContext();
-                const token = await microsoftTeams.authentication.getAuthToken();
-                const teamId = context.team.groupId;
+                const authToken = await microsoftTeams.authentication.getAuthToken();
+                const currentTeamId = context.team.groupId;
+                const currentUserId = context.user.id;
+
+                setTeamId(currentTeamId);
+                setUserId(currentUserId);
+                setToken(authToken);
                 
-                if (teamId && token) {
-                    const response = await axios.get(`/api/teamtag/list?ssoToken=${token}&teamId=${teamId}`);
+                if (currentTeamId && authToken) {
+                    const response = await axios.get(`/api/teamtag/list?ssoToken=${authToken}&teamId=${currentTeamId}`);
                     if (response.status === 200) {
                         setTags(response.data);
                     }
@@ -44,22 +54,46 @@ const Dashboard = () => {
         navigate("/manage-tags");
     };
 
-    const handleSendTeams = () => {
-        if (!question || !selectedTag) {
-            alert("Please enter a question and select a topic.");
+    const sendQuestion = async (isEmail) => {
+        if (!question || !selectedTag || !subject) {
+            alert("Please enter a subject, question, and select a topic.");
             return;
         }
-        console.log("Sending via Teams", { question, selectedTag, onlyOnline });
-        alert("Question sent via Teams!");
+
+        const payload = {
+            Tag: selectedTag,
+            QuestionTopic: subject,
+            Question: question,
+            TeamId: teamId,
+            TargetsOnlineUsers: onlyOnline,
+            Email: isEmail,
+            QuestionTarget: parseInt(targetType),
+            RequesterUserId: userId
+        };
+
+        try {
+            console.log(`Sending via ${isEmail ? "Email" : "Teams"}`, payload);
+            const response = await axios.post(`/api/questions?ssoToken=${token}`, payload);
+            
+            if (response.status === 200) {
+                alert(`Question sent via ${isEmail ? "Email" : "Teams"}!`);
+                setQuestion("");
+                setSubject("");
+            } else {
+                alert("Failed to send question.");
+            }
+        } catch (error) {
+            console.error("Error sending question:", error);
+            alert("Error sending question. Please try again.");
+        }
+    };
+
+    const handleSendTeams = () => {
+        sendQuestion(false);
     };
 
     const handleSendEmail = () => {
-        if (!question || !selectedTag) {
-            alert("Please enter a question and select a topic.");
-            return;
-        }
-        console.log("Sending via Email", { question, selectedTag, onlyOnline });
-        alert("Question sent via Email!");
+        sendQuestion(true);
     };
 
     return (
@@ -74,6 +108,13 @@ const Dashboard = () => {
                 <div className="enableer-logo">Enableer</div>
                 
                 <div className="enableer-input-container">
+                    <input
+                        className="enableer-text-input"
+                        placeholder="Subject"
+                        value={subject}
+                        onChange={(e) => setSubject(e.target.value)}
+                        style={{ marginBottom: "10px", width: "100%", padding: "10px", borderRadius: "4px", border: "1px solid #ccc" }}
+                    />
                     <textarea 
                         className="enableer-textarea" 
                         placeholder="Ask a question about a topic..." 
@@ -92,6 +133,16 @@ const Dashboard = () => {
                                 {tags.map(tag => (
                                     <option key={tag.id} value={tag.id}>{tag.displayName}</option>
                                 ))}
+                            </select>
+
+                            <select
+                                className="enableer-select"
+                                value={targetType}
+                                onChange={(e) => setTargetType(e.target.value)}
+                                style={{ marginTop: "10px" }}
+                            >
+                                <option value="1">All people with tag</option>
+                                <option value="0">One person with tag</option>
                             </select>
                             
                             <label className="enableer-checkbox-label">

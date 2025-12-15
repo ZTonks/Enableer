@@ -7,6 +7,11 @@ namespace GraphTeamsTag.Helper
     using GraphTeamsTag.Models;
     using GraphTeamsTag.Provider;
     using Microsoft.Graph;
+    using Microsoft.Graph.Models;
+    using System;
+    using System.Collections.Generic;
+    using System.Linq;
+    using System.Threading.Tasks;
 
     public class GraphHelper
     {
@@ -32,16 +37,18 @@ namespace GraphTeamsTag.Helper
             {
                 DisplayName = teamTag.DisplayName,
                 Description = teamTag.Description,
+                Members = new List<TeamworkTagMember>()
             };
 
-            var teamworkTagMembersCollection = new TeamworkTagMembersCollectionPage();
-            teamTag.MembersToBeAdded.ToList().ForEach(member => teamworkTagMembersCollection.Add(new TeamworkTagMember
+            if (teamTag.MembersToBeAdded != null)
             {
-                UserId = member.UserId
-            }));
+                teamworkTag.Members.AddRange(teamTag.MembersToBeAdded.Select(member => new TeamworkTagMember
+                {
+                    UserId = member.UserId
+                }));
+            }
 
-            teamworkTag.Members = teamworkTagMembersCollection;
-            await this.graphBetaClient.Teams[teamId].Tags.Request().AddAsync(teamworkTag);
+            await this.graphBetaClient.Teams[teamId].Tags.PostAsync(teamworkTag);
         }
 
         /// <summary>
@@ -53,41 +60,35 @@ namespace GraphTeamsTag.Helper
         {
             try
             {
-                var tags = await this.graphBetaClient.Teams[teamId].Tags.Request().GetAsync();
+                var tagsResponse = await this.graphBetaClient.Teams[teamId].Tags.GetAsync();
                 var teamworkTagList = new List<TeamTag>();
-                do
+                
+                if (tagsResponse?.Value != null)
                 {
-                    IEnumerable<TeamworkTag> teamTagCurrentPage = tags.CurrentPage;
-
-                    foreach (var tag in teamTagCurrentPage)
-                    {
-                        var teamworkTagMembersList = new List<TeamworkTagMember>();
-
-                        teamworkTagList.Add(new TeamTag
+                    var pageIterator = PageIterator<TeamworkTag, TeamworkTagCollectionResponse>.CreatePageIterator(
+                        this.graphBetaClient, 
+                        tagsResponse, 
+                        (tag) => 
                         {
-                            Id = tag.Id,
-                            DisplayName = tag.DisplayName,
-                            Description = tag.Description,
-                            MembersCount = tag.MemberCount == null ? 0 : (int)tag.MemberCount,
-                        });
-                    }
+                            teamworkTagList.Add(new TeamTag
+                            {
+                                Id = tag.Id,
+                                DisplayName = tag.DisplayName,
+                                Description = tag.Description,
+                                MembersCount = tag.MemberCount ?? 0,
+                            });
+                            return true;
+                        }
+                    );
 
-                    // If there are more result.
-                    if (tags.NextPageRequest != null)
-                    {
-                        tags = await tags.NextPageRequest.GetAsync();
-                    }
-                    else
-                    {
-                        break;
-                    }
+                    await pageIterator.IterateAsync();
                 }
-                while (tags.CurrentPage != null);
 
                 return teamworkTagList;
             }
             catch (Exception ex)
             {
+                // Consider logging the exception
                 return null;
             }
         }
@@ -103,8 +104,7 @@ namespace GraphTeamsTag.Helper
             try
             {
                 var teamworkTag = await this.graphBetaClient.Teams[teamId].Tags[teamTagId]
-               .Request()
-               .GetAsync();
+                   .GetAsync();
 
                 var teamTag = new TeamTag
                 {
@@ -132,12 +132,12 @@ namespace GraphTeamsTag.Helper
         {
             var teamworkTag = new TeamworkTag()
             {
-                Id = teamTag.Id,
                 DisplayName = teamTag.DisplayName,
                 Description = teamTag.Description,
             };
 
-            var teamworkTagUpdated = await this.graphBetaClient.Teams[teamId].Tags[teamTag.Id].Request().UpdateAsync(teamworkTag);
+            // In v5, use PatchAsync for updates
+            var teamworkTagUpdated = await this.graphBetaClient.Teams[teamId].Tags[teamTag.Id].PatchAsync(teamworkTag);
             if (teamworkTagUpdated != null)
             {
                 await AddRemoveTagMembersAsync(teamTag, teamId);
@@ -152,38 +152,42 @@ namespace GraphTeamsTag.Helper
         /// <returns>A task that represents the work queued to execute.</returns>
         public async Task AddRemoveTagMembersAsync (TeamTagUpdateDto teamTag, string teamId)
         {
-            foreach (var member in teamTag.MembersToBeAdded)
+            if (teamTag.MembersToBeAdded != null)
             {
-                try
+                foreach (var member in teamTag.MembersToBeAdded)
                 {
-                    var teamworkTagMember = new TeamworkTagMember
+                    try
                     {
-                        UserId = member.UserId
-                    };
+                        var teamworkTagMember = new TeamworkTagMember
+                        {
+                            UserId = member.UserId
+                        };
 
-                    await graphBetaClient.Teams[teamId].Tags[teamTag.Id].Members
-                        .Request()
-                        .AddAsync(teamworkTagMember);
-                }
+                        await graphBetaClient.Teams[teamId].Tags[teamTag.Id].Members
+                            .PostAsync(teamworkTagMember);
+                    }
                     catch (Exception ex)
-                {
-                    Console.WriteLine("Member not added with user Id: " + member.UserId, ex);
-                    continue;
+                    {
+                        Console.WriteLine("Member not added with user Id: " + member.UserId, ex);
+                        continue;
+                    }
                 }
             }
 
-            foreach (var member in teamTag.MembersToBeDeleted)
+            if (teamTag.MembersToBeDeleted != null)
             {
-                try
+                foreach (var member in teamTag.MembersToBeDeleted)
                 {
-                    await this.graphBetaClient.Teams[teamId].Tags[teamTag.Id].Members[member.Id]
-                    .Request()
-                    .DeleteAsync();
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine("Member not deleted with user Id: " + member.UserId, ex);
-                    continue;
+                    try
+                    {
+                        await this.graphBetaClient.Teams[teamId].Tags[teamTag.Id].Members[member.Id]
+                            .DeleteAsync();
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine("Member not deleted with user Id: " + member.UserId, ex);
+                        continue;
+                    }
                 }
             }
         }
@@ -196,25 +200,25 @@ namespace GraphTeamsTag.Helper
         /// <returns>List of member in the tags.</returns>
         public async Task<List<TeamworkTagMember>> GetTeamworkTagMembersAsync(string teamId, string tagId)
         {
-            var members = await graphBetaClient.Teams[teamId].Tags[tagId].Members
-                .Request()
+            var membersResponse = await graphBetaClient.Teams[teamId].Tags[tagId].Members
                 .GetAsync();
 
             var tagMemberList = new List<TeamworkTagMember>();
 
-            do
+            if (membersResponse?.Value != null)
             {
-                tagMemberList.AddRange(members.CurrentPage);
-                if (members.NextPageRequest != null)
-                {
-                    members = await members.NextPageRequest.GetAsync();
-                }
-                else
-                {
-                    break;
-                }
+                var pageIterator = PageIterator<TeamworkTagMember, TeamworkTagMemberCollectionResponse>.CreatePageIterator(
+                    this.graphBetaClient,
+                    membersResponse,
+                    (member) =>
+                    {
+                        tagMemberList.Add(member);
+                        return true;
+                    }
+                );
+
+                await pageIterator.IterateAsync();
             }
-            while (members.CurrentPage != null);
 
             return tagMemberList;
         }
@@ -228,7 +232,6 @@ namespace GraphTeamsTag.Helper
         public async Task DeleteTeamworkTagAsync(string teamId, string tagId)
         {
             await graphBetaClient.Teams[teamId].Tags[tagId]
-                .Request()
                 .DeleteAsync();
         }
     }
