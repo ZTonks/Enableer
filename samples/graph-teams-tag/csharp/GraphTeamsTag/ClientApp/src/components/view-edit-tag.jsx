@@ -24,16 +24,21 @@ const ViewEditTag = props => {
     useEffect(() => {
         microsoftTeams.app.initialize().then(() => {
             microsoftTeams.app.getContext().then((context) => {
-                initializeData(context.team.groupId);
                 setTeamId(context.team.groupId);
+                // Get SSO token and then initialize data
+                microsoftTeams.authentication.getAuthToken().then((token) => {
+                    initializeData(context.team.groupId, token);
+                }).catch((error) => {
+                    console.error("Failed to get auth token:", error);
+                });
             });
         })
     }, []);
 
     // Gets the members of selected tags.
-    const initializeData = async (teamId) => {
+    const initializeData = async (teamId, ssoToken) => {
         setIsMemberLoading(true)
-        var response = await axios.get(`api/teamtag/${teamId}/tag/${props.teamworkTag.id}/members`)
+        var response = await axios.get(`api/teamtag/${teamId}/tag/${props.teamworkTag.id}/members?ssoToken=${ssoToken}`)
 
         if (response.status == 200) {
             setTeamworkTagMembers(response.data);
