@@ -35,6 +35,8 @@ class Dashboard extends Component {
 
     componentDidMount() {
         microsoftTeams.app.initialize().then(() => {
+            microsoftTeams.app.notifySuccess();
+
             microsoftTeams.app.getContext().then((context) => {
                 this.setState({ teamsContext: context });
             }).then(() => {
@@ -91,14 +93,29 @@ class Dashboard extends Component {
      * Initialize the the list of tags.
      * @param {any} teamId Id of team.
      */
-    initializeData = async (teamId) => {
-        this.setState({ isLoading: true });
-        var response = await axios.get(`/api/teamtag/${teamId}/list`);
-
-        if (response.status === 200) {
-            this.setState({ teamworkTags: response.data, isLoading: false });
-            return response.data;
+    initializeData = async (teamId, ssoToken = idToken) => {
+        if (!teamId || !ssoToken) {
+            return [];
         }
+
+        this.setState({ isLoading: true });
+
+        try {
+            var response = await axios.get(`/api/teamtag/list?ssoToken=${ssoToken}&teamId=${teamId}`);
+
+            if (response.status === 200) {
+                this.setState({ teamworkTags: response.data, isLoading: false });
+                return response.data;
+            }
+        }
+        catch (error) {
+            console.error("Failed to refresh tags:", error);
+        }
+        finally {
+            this.setState({ isLoading: false });
+        }
+
+        return [];
     }
 
     // Handler when user click on create new tag button.
@@ -142,7 +159,11 @@ class Dashboard extends Component {
             dashboardState: DashboardState.Default,
             selectedTeamworkTag: {}
         });
-        this.initializeData(this.state.teamsContext.team.groupId);
+
+        const teamId = this.state?.teamsContext?.team?.groupId;
+        if (teamId) {
+            this.initializeData(teamId);
+        }
     }
 
     // Handler when user clicks on view icon.
