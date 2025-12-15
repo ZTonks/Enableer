@@ -5,13 +5,13 @@
   "author": "Microsoft",
   "license": "MIT",
   "dependencies": {
-    "@fluentui/react-northstar": "^0.63.1",
-    "@microsoft/teams-js": "^2.35.0",
-    "axios": "^0.21.1",
+    "@fluentui/react-northstar": "^0.71.1",
+    "@microsoft/teams-js": "^2.47.2",
+    "axios": "^1.13.2",
     "caniuse-lite": "^1.0.30001760",
-    "react": "18.2.0",
-    "react-dom": "18.2.0",
-    "react-router-dom": "6.4.3",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "react-router-dom": "7.10.1",
     "react-scripts": "^5.0.1"
   },
   "scripts": {
