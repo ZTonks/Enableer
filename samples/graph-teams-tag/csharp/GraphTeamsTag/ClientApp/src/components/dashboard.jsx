@@ -115,7 +115,6 @@ const Dashboard = () => {
                         placeholder="Subject"
                         value={subject}
                         onChange={(e) => setSubject(e.target.value)}
-                        style={{ marginBottom: "10px", width: "100%", padding: "10px", borderRadius: "4px", border: "1px solid #ccc" }}
                     />
                     <textarea 
                         className="enableer-textarea" 
@@ -141,7 +140,6 @@ const Dashboard = () => {
                                 className="enableer-select"
                                 value={targetType}
                                 onChange={(e) => setTargetType(e.target.value)}
-                                style={{ marginTop: "10px" }}
                             >
                                 <option value="1">All people with tag</option>
                                 <option value="0">One person with tag</option>
