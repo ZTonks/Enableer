@@ -1,4 +1,3 @@
-using GraphTeamsTag.Models;
 using GraphTeamsTag.Services;
 using Microsoft.AspNetCore.Mvc;
 
@@ -23,4 +22,3 @@ namespace GraphTeamsTag.Controllers
         }
     }
 }
-

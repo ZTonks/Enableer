@@ -1,5 +1,6 @@
 ﻿using GraphTeamsTag.Helper;
 using GraphTeamsTag.Models;
+using GraphTeamsTag.Provider;
 using GraphTeamsTag.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Graph;
@@ -12,26 +13,20 @@ namespace GraphTeamsTag.Controllers
     [ApiController]
     public class QuestionController : Controller
     {
-        private readonly IConfiguration _configuration;
         private readonly ILogger<QuestionController> _logger;
-        private readonly IHttpClientFactory _httpClientFactory;
-        private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly IGraphClientFactory _graphClientFactory;
         private readonly LeaderboardService _leaderboardService;
         private readonly QuestionHistoryService _historyService;
 
         public QuestionController(
             ILogger<QuestionController> logger,
-            IConfiguration configuration,
-            IHttpClientFactory httpClientFactory,
-            IHttpContextAccessor httpContextAccessor,
+            IGraphClientFactory graphClientFactory,
             GraphHelper graphHelper,
             LeaderboardService leaderboardService,
             QuestionHistoryService historyService)
         {
-            _configuration = configuration;
-            _httpClientFactory = httpClientFactory;
-            _httpContextAccessor = httpContextAccessor;
             _logger = logger;
+            _graphClientFactory = graphClientFactory;
             _leaderboardService = leaderboardService;
             _historyService = historyService;
         }
@@ -41,8 +36,7 @@ namespace GraphTeamsTag.Controllers
             [FromQuery] string ssoToken,
             [FromBody] AskQuestionRequest request)
         {
-            var token = await SSOAuthHelper.GetAccessTokenOnBehalfUserAsync(_configuration, _httpClientFactory, _httpContextAccessor, ssoToken);
-            var graphClient = SimpleGraphClient.GetGraphClient(token);
+            var graphClient = await _graphClientFactory.CreateGraphClientAsync(ssoToken);
 
             var members = new List<TeamworkTagMember>();
 
