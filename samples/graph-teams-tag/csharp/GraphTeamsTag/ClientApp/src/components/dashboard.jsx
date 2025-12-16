@@ -9,6 +9,7 @@ import * as microsoftTeams from "@microsoft/teams-js";
 import axios from "axios";
 import "../style/style.css";
 import logo from "../assets/logo.png";
+import henchIcon from "../assets/icon-hench.png";
 
 const Dashboard = () => {
     const navigate = useNavigate();
@@ -26,6 +27,7 @@ const Dashboard = () => {
     const [loadingSummary, setLoadingSummary] = useState(null); // chatId being summarized
     const teamsTimeoutRef = useRef(null);
     const emailTimeoutRef = useRef(null);
+    const [logoSrc] = useState(() => (Math.random() < 0.1 ? henchIcon : logo));
     
     useEffect(() => {
         const initTeams = async () => {
@@ -172,7 +174,7 @@ const Dashboard = () => {
             </div>
             
             <div className="enableer-content">
-                <img src={logo} alt="Enableer Logo" style={{ maxWidth: "200px", marginBottom: "20px" }} />
+                <img src={logoSrc} alt="Enableer Logo" style={{ maxWidth: "200px", marginBottom: "20px" }} />
                 <div className="enableer-logo">Enableer</div>
                 
                 <div className="enableer-input-container">
