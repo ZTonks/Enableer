@@ -3,7 +3,7 @@
 // Licensed under the MIT license.
 // </copyright>
 
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import * as microsoftTeams from "@microsoft/teams-js";
 import axios from "axios";
@@ -15,6 +15,7 @@ const Dashboard = () => {
     const [question, setQuestion] = useState("");
     const [subject, setSubject] = useState("");
     const [selectedTags, setSelectedTags] = useState([]);
+    const [loading, setLoading] = useState(true);
     const [onlyOnline, setOnlyOnline] = useState(false);
     const [tags, setTags] = useState([]);
     const [teamId, setTeamId] = useState("");
@@ -44,6 +45,7 @@ const Dashboard = () => {
                     const response = await axios.get(`/api/teamtag/list?ssoToken=${authToken}&teamId=${currentTeamId}`);
                     if (response.status === 200) {
                         setTags(response.data);
+                        setLoading(false);
                     }
                 }
             } catch (error) {
@@ -189,7 +191,10 @@ const Dashboard = () => {
                                     }
                                 }}
                             >
-                                <option value="" disabled>Select a topic</option>
+                                {loading 
+                                    ? <option key="banner" disabled value="">Loading tags...</option>
+                                    : <option key="banner" disabled value="">Select a topic</option>
+                                }
                                 {tags.map(tag => (
                                     <option key={tag.id} value={tag.id}>{tag.displayName}</option>
                                 ))}
