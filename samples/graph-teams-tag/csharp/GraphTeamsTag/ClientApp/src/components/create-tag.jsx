@@ -100,6 +100,9 @@ const CreateTag = props => {
                     microsoftTeams.dialog.url.submit("Created successfully!");
                 }
             }
+            else {
+                alert("Tag name and description are required");
+            }
         });
     }
 
