@@ -172,30 +172,45 @@ namespace GraphTeamsTag.Controllers
             if (chatType == ChatType.Group)
             {
                 chat.Topic = request.QuestionTopic;
-            }
 
-            foreach (var member in members)
+                foreach (var member in members)
+                {
+                    chat.Members.Add(new AadUserConversationMember
+                    {
+                        AdditionalData = new Dictionary<string, object>()
+                    {
+                        {"user@odata.bind", $"https://graph.microsoft.com/v1.0/users('{member.UserId}')"}
+                    },
+                        Roles = new List<string> { "owner" }
+                    });
+                }
+            }
+            else
             {
+                // Randomly select a user to ask the question to
+                var random = new Random();
+                var randomIndex = random.Next(members.Count);
+
                 chat.Members.Add(new AadUserConversationMember
                 {
                     AdditionalData = new Dictionary<string, object>()
                     {
-                        {"user@odata.bind", $"https://graph.microsoft.com/v1.0/users('{member.UserId}')"}
+                        {"user@odata.bind", $"https://graph.microsoft.com/v1.0/users('{members[randomIndex].UserId}')"}
                     },
                     Roles = new List<string> { "owner" }
                 });
             }
-            
+
             chat.Members.Add(new AadUserConversationMember
             {
                 Roles = new List<string>()
-                {
-                    "owner"
-                },
+            {
+                "owner"
+            },
                 AdditionalData = new Dictionary<string, object>()
-                {
-                    {"user@odata.bind", $"https://graph.microsoft.com/v1.0/users('{request.RequesterUserId}')"}
-                }
+            {
+                {"user@odata.bind", $"https://graph.microsoft.com/v1.0/users('{request.RequesterUserId}')"}
+            }
             });
 
             var chatResponse = await graphClient.Chats.PostAsync(chat);
