@@ -2,10 +2,8 @@
 using GraphTeamsTag.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Graph;
+using Microsoft.Graph.Me.SendMail;
 using Microsoft.Graph.Models;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace GraphTeamsTag.Controllers
 {
@@ -39,21 +37,40 @@ namespace GraphTeamsTag.Controllers
             var token = await SSOAuthHelper.GetAccessTokenOnBehalfUserAsync(_configuration, _httpClientFactory, _httpContextAccessor, ssoToken);
             var graphClient = SimpleGraphClient.GetGraphClient(token);
 
-            var membersResponse = await graphClient.Teams[request.TeamId].Tags[request.Tag].Members.GetAsync();
             var members = new List<TeamworkTagMember>();
-            
-            if (membersResponse?.Value != null)
+
+            foreach (var tag in request.Tags)
             {
+                var membersResponse = await graphClient.Teams[request.TeamId].Tags[tag].Members.GetAsync();
+
+                if (membersResponse?.Value is null)
+                {
+                    continue;
+                }
+
                 var pageIterator = PageIterator<TeamworkTagMember, TeamworkTagMemberCollectionResponse>.CreatePageIterator(
                     graphClient,
                     membersResponse,
-                    (m) => {
+                    (m) =>
+                    {
+                        if (m.UserId == request.RequesterUserId)
+                        {
+                            return true; // Skip - requester is always added
+                        }
+
                         members.Add(m);
                         return true;
-                    }
-                );
+                    });
+
                 await pageIterator.IterateAsync();
             }
+
+            members = members
+                .GroupBy(m => m.UserId)
+                .Where(g => g.Count() == request.Tags.Length) // Where matched every tag i.e. AND these together
+                .SelectMany(g => g)
+                .DistinctBy(m => m.UserId)
+                .ToList();
 
             if (request.TargetsOnlineUsers)
             {
@@ -61,7 +78,14 @@ namespace GraphTeamsTag.Controllers
 
                 foreach (var member in members)
                 {
+                    // TODO, this could probably be improved using a filter to limit the (N+1)-ness of this query
+                    // https://stackoverflow.com/questions/77505096/microsoft-graph-api-get-a-list-of-users-by-ids
                     var userPresence = await graphClient.Users[member.UserId].Presence.GetAsync();
+
+                    if (userPresence is null)
+                    {
+                        continue;
+                    }
 
                     if (userPresence.Availability == "Available")
                     {
@@ -72,9 +96,55 @@ namespace GraphTeamsTag.Controllers
                 members = onlineMembers;
             }
 
+            if (members.Count == 0)
+            {
+                return BadRequest(new
+                {
+                    Problem = "No members were eligible for all tags",
+                });
+            }
+
             if (request.Email)
             {
-                // ZT TODO
+                var userEmails = new List<string>();
+                foreach (var member in members)
+                {
+                    // TODO, this could probably be improved using a filter to limit the (N+1)-ness of this query
+                    // https://stackoverflow.com/questions/77505096/microsoft-graph-api-get-a-list-of-users-by-ids
+                    var user = await graphClient.Users[member.UserId].GetAsync((options) =>
+                    {
+                        options.QueryParameters.Select = ["UserPrincipalName"];
+                    });
+
+                    if (user != null && user.UserPrincipalName != null)
+                    {
+                        userEmails.Add(user.UserPrincipalName);
+                    }
+                }
+
+                var email = new SendMailPostRequestBody
+                {
+                    Message = new Message
+                    {
+                        Subject = $"Call for aid - {request.QuestionTopic} - {string.Join(", ", request.Tags)}",
+                        Body = new ItemBody
+                        {
+                            ContentType = BodyType.Text,
+                            Content = request.Question,
+                        },
+                        ToRecipients = userEmails.Select(ue => new Recipient
+                        {
+                            EmailAddress = new EmailAddress()
+                            {
+                                Address = ue
+                            }
+                        }).ToList(),
+                    },
+                    SaveToSentItems = true,
+                };
+
+                await graphClient.Me.SendMail.PostAsync(email);
+
                 return Ok();
             }
 
@@ -91,7 +161,7 @@ namespace GraphTeamsTag.Controllers
                 chat.Topic = request.QuestionTopic;
             }
 
-            foreach (var member in members.Where(m => m.UserId != request.RequesterUserId))
+            foreach (var member in members)
             {
                 chat.Members.Add(new AadUserConversationMember
                 {
@@ -131,7 +201,7 @@ namespace GraphTeamsTag.Controllers
             var reponse = new AskQuestionResponse
             {
                 ChatId = chatResponse.Id,
-                ResponseUsers = members.Select(m => m.DisplayName).ToArray(),
+                ResponseUsers = members.Select(m => m.DisplayName ?? "User").ToArray(),
             };
 
             return Ok(reponse);
