@@ -22,7 +22,8 @@ const Dashboard = () => {
     const [token, setToken] = useState("");
     const [targetType, setTargetType] = useState("1");
     const [questionHistory, setQuestionHistory] = useState([]);
-    
+    const [loadingSummary, setLoadingSummary] = useState(null); // chatId being summarized
+
     useEffect(() => {
         const initTeams = async () => {
             try {
@@ -51,6 +52,24 @@ const Dashboard = () => {
 
         initTeams();
     }, []);
+
+    const handleSummarize = async (chatId) => {
+        try {
+            setLoadingSummary(chatId);
+            const response = await axios.post(`/api/history/${chatId}/summarize?ssoToken=${token}`);
+            if (response.status === 200) {
+                // Update local state to show summary
+                setQuestionHistory(prev => prev.map(q => 
+                    q.chatId === chatId ? { ...q, summary: response.data.summary } : q
+                ));
+            }
+        } catch (error) {
+            console.error("Error summarizing:", error);
+            alert("Failed to summarize discussion.");
+        } finally {
+            setLoadingSummary(null);
+        }
+    };
 
     const handleConfigureTags = () => {
         navigate("/manage-tags");
@@ -206,24 +225,49 @@ const Dashboard = () => {
                             }}>
                                 <div style={{ fontWeight: 'bold' }}>{q.questionTopic}</div>
                                 <div style={{ marginTop: '5px' }}>{q.questionContent}</div>
-                                {q.chatWebUrl && (
-                                    <a 
-                                        href={q.chatWebUrl} 
-                                        target="_blank" 
-                                        rel="noopener noreferrer"
-                                        className="enableer-button enableer-button-primary"
-                                        style={{ 
-                                            display: 'inline-block', 
-                                            marginTop: '10px', 
-                                            textDecoration: 'none', 
+                                
+                                {q.summary && (
+                                    <div style={{ marginTop: '10px', padding: '10px', backgroundColor: '#f0f4f8', borderRadius: '5px' }}>
+                                        <strong>AI Summary:</strong>
+                                        <p style={{ margin: '5px 0 0 0', whiteSpace: 'pre-wrap' }}>{q.summary}</p>
+                                    </div>
+                                )}
+
+                                <div style={{ marginTop: '10px' }}>
+                                    {q.chatWebUrl && (
+                                        <a 
+                                            href={q.chatWebUrl} 
+                                            target="_blank" 
+                                            rel="noopener noreferrer"
+                                            className="enableer-button enableer-button-primary"
+                                            style={{ 
+                                                display: 'inline-block', 
+                                                textDecoration: 'none', 
+                                                fontSize: '0.9rem',
+                                                padding: '5px 10px',
+                                                marginRight: '10px'
+                                            }}
+                                            onClick={(e) => e.stopPropagation()}
+                                        >
+                                            Join Chat
+                                        </a>
+                                    )}
+                                    
+                                    <button
+                                        className="enableer-button enableer-button-secondary"
+                                        style={{
                                             fontSize: '0.9rem',
                                             padding: '5px 10px'
                                         }}
-                                        onClick={(e) => e.stopPropagation()}
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleSummarize(q.chatId);
+                                        }}
+                                        disabled={loadingSummary === q.chatId}
                                     >
-                                        Join Chat
-                                    </a>
-                                )}
+                                        {loadingSummary === q.chatId ? "Summarizing..." : (q.summary ? "Refresh Summary" : "Summarize with AI")}
+                                    </button>
+                                </div>
                             </div>
                         ))}
                     </div>

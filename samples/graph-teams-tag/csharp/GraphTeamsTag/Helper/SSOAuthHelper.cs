@@ -1,4 +1,4 @@
-﻿using Microsoft.IdentityModel.Tokens;
+using Microsoft.IdentityModel.Tokens;
 using Newtonsoft.Json;
 using System.Net.Http.Headers;
 using System.Text;
@@ -114,13 +114,15 @@ namespace GraphTeamsTag.Helper
         /// <param name="configuration">IConfiguration instance.</param>
         /// <param name="httpClientFactory">IHttpClientFactory instance.</param>
         /// <param name="httpContextAccessor">IHttpContextAccessor instance.</param>
+        /// <param name="ssoToken">The SSO token.</param>
+        /// <param name="scope">The requested scope.</param>
         /// <returns>App access token on behalf of user.</returns>
-        public static async Task<string> GetAccessTokenOnBehalfUserAsync(IConfiguration configuration, IHttpClientFactory httpClientFactory, IHttpContextAccessor httpContextAccessor, string ssoToken)
+        public static async Task<string> GetAccessTokenOnBehalfUserAsync(IConfiguration configuration, IHttpClientFactory httpClientFactory, IHttpContextAccessor httpContextAccessor, string ssoToken, string scope = "https://graph.microsoft.com/User.Read")
         {
             var httpContext = httpContextAccessor.HttpContext;
             //httpContext.Request.Headers.TryGetValue("Authorization", out StringValues assertion);
             var idToken = ssoToken;
-            var body = $"assertion={idToken}&requested_token_use=on_behalf_of&grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&client_id={configuration[ClientIdConfigurationSettingsKey]}@{configuration[TenantIdConfigurationSettingsKey]}&client_secret={configuration[AppsecretConfigurationSettingsKey]}&scope=https://graph.microsoft.com/User.Read";
+            var body = $"assertion={idToken}&requested_token_use=on_behalf_of&grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&client_id={configuration[ClientIdConfigurationSettingsKey]}@{configuration[TenantIdConfigurationSettingsKey]}&client_secret={configuration[AppsecretConfigurationSettingsKey]}&scope={scope}";
             try
             {
                 var client = httpClientFactory.CreateClient("WebClient");

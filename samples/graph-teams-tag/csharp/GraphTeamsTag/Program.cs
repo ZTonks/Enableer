@@ -18,6 +18,7 @@ builder.Services.AddTransient<SimpleBetaGraphClient>();
 builder.Services.AddTransient<GraphHelper>();
 builder.Services.AddSingleton<LeaderboardService>();
 builder.Services.AddSingleton<QuestionHistoryService>();
+builder.Services.AddTransient<CopilotService>();
 
 // Adds application configuration settings to specified IServiceCollection.
 builder.Services.AddOptions<AzureSettings>()

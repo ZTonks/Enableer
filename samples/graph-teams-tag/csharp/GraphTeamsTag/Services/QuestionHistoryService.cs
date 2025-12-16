@@ -35,6 +35,20 @@ namespace GraphTeamsTag.Services
             }
         }
 
+        public void AddSummary(string chatId, string summary)
+        {
+            lock (_lock)
+            {
+                var history = GetHistory();
+                var question = history.FirstOrDefault(q => q.ChatId == chatId);
+                if (question != null)
+                {
+                    question.Summary = summary;
+                    File.WriteAllText(FilePath, JsonSerializer.Serialize(history, new JsonSerializerOptions { WriteIndented = true }));
+                }
+            }
+        }
+
         public List<QuestionHistoryEntry> GetTopQuestionsByTag(string tagId, int count = 5)
         {
              var history = GetHistory();

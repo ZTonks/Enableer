@@ -10,6 +10,7 @@ namespace GraphTeamsTag.Models
         public string ChatWebUrl { get; set; }
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public string RequesterUserId { get; set; }
+        public string? Summary { get; set; }
     }
 }
 

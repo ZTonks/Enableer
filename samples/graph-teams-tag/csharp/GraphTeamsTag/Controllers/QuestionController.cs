@@ -24,7 +24,6 @@ namespace GraphTeamsTag.Controllers
             IConfiguration configuration,
             IHttpClientFactory httpClientFactory,
             IHttpContextAccessor httpContextAccessor,
-            GraphHelper graphHelper,
             LeaderboardService leaderboardService,
             QuestionHistoryService historyService)
         {

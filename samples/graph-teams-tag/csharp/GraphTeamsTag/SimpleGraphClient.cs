@@ -1,11 +1,6 @@
-﻿using System.Net.Http.Headers;
-using Microsoft.Graph;
 using Azure.Identity;
+using Microsoft.Graph;
 using Microsoft.Kiota.Abstractions.Authentication;
-using System.Threading.Tasks;
-using System.Collections.Generic;
-using System.Threading;
-using System;
 
 namespace GraphTeamsTag
 {
