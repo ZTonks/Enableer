@@ -3,10 +3,10 @@
 // Licensed under the MIT license.
 // </copyright>
 
-import React, { Component } from "react";
+import { Component } from "react";
 import { useNavigate } from "react-router-dom";
 import { Text, Flex, FlexItem, Button, TrashCanIcon, EditIcon, EyeFriendlierIcon, Loader } from "@fluentui/react-northstar";
-import { CopySelectFilled } from "@fluentui/react-icons";
+import { CopyAddFilled } from "@fluentui/react-icons";
 import * as microsoftTeams from "@microsoft/teams-js";
 import axios from "axios";
 import ViewEditTag from "./view-edit-tag";
@@ -246,7 +246,7 @@ class ManageTagsContent extends Component {
                         <EyeFriendlierIcon className="manage-icons" onClick={() => { this.onViewClick(teamworkTag) }} />
                         <EditIcon className="manage-icons"  onClick={() => { this.onEditClick(teamworkTag) }}/>
                         <TrashCanIcon className="manage-icons" onClick={() => { this.onDeleteTagClick(teamworkTag) }}/>
-                        <CopySelectFilled className="manage-icons" onClick={() => { this.onCopyTagClick(teamworkTag) }}/>
+                        <CopyAddFilled className="manage-icons" onClick={() => { this.onCopyTagClick(teamworkTag) }}/>
                     </Flex>
                 </Flex.Item>
             </Flex>);
