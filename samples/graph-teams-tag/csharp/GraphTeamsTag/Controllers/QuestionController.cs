@@ -1,5 +1,6 @@
 ﻿using GraphTeamsTag.Helper;
 using GraphTeamsTag.Models;
+using GraphTeamsTag.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Graph;
 using Microsoft.Graph.Me.SendMail;
@@ -15,18 +16,24 @@ namespace GraphTeamsTag.Controllers
         private readonly ILogger<QuestionController> _logger;
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly LeaderboardService _leaderboardService;
+        private readonly QuestionHistoryService _historyService;
 
         public QuestionController(
             ILogger<QuestionController> logger,
             IConfiguration configuration,
             IHttpClientFactory httpClientFactory,
             IHttpContextAccessor httpContextAccessor,
-            GraphHelper graphHelper)
+            GraphHelper graphHelper,
+            LeaderboardService leaderboardService,
+            QuestionHistoryService historyService)
         {
             _configuration = configuration;
             _httpClientFactory = httpClientFactory;
             _httpContextAccessor = httpContextAccessor;
             _logger = logger;
+            _leaderboardService = leaderboardService;
+            _historyService = historyService;
         }
 
         [HttpPost("")]
@@ -102,6 +109,12 @@ namespace GraphTeamsTag.Controllers
                 {
                     Problem = "No members were eligible for all tags",
                 });
+            }
+
+            // Award points to users who are being asked for help
+            foreach (var member in members)
+            {
+                _leaderboardService.AddPoints(member.UserId, member.DisplayName, 1);
             }
 
             if (request.Email)
@@ -203,6 +216,17 @@ namespace GraphTeamsTag.Controllers
                 ChatId = chatResponse.Id,
                 ResponseUsers = members.Select(m => m.DisplayName ?? "User").ToArray(),
             };
+
+            // Save question history
+            _historyService.AddQuestion(new QuestionHistoryEntry
+            {
+                QuestionTopic = request.QuestionTopic,
+                QuestionContent = request.Question,
+                Tags = request.Tags,
+                ChatId = chatResponse.Id,
+                ChatWebUrl = chatResponse.WebUrl,
+                RequesterUserId = request.RequesterUserId
+            });
 
             return Ok(reponse);
         }
