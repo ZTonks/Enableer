@@ -107,7 +107,7 @@ namespace GraphTeamsTag.Controllers
             {
                 return BadRequest(new
                 {
-                    Problem = "No members were eligible for all tags",
+                    Problem = "No members were eligible for all tags.",
                 });
             }
 

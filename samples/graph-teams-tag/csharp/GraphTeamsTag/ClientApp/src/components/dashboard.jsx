@@ -3,7 +3,7 @@
 // Licensed under the MIT license.
 // </copyright>
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import * as microsoftTeams from "@microsoft/teams-js";
 import axios from "axios";
@@ -22,6 +22,8 @@ const Dashboard = () => {
     const [token, setToken] = useState("");
     const [targetType, setTargetType] = useState("1");
     const [questionHistory, setQuestionHistory] = useState([]);
+    const teamsTimeoutRef = useRef(null);
+    const emailTimeoutRef = useRef(null);
     
     useEffect(() => {
         const initTeams = async () => {
@@ -60,7 +62,7 @@ const Dashboard = () => {
         navigate("/leaderboard");
     };
 
-    const sendQuestion = async (isEmail) => {
+    const sendQuestion = useCallback(async (isEmail) => {
         if (!question || !selectedTags || !selectedTags.length || !subject) {
             alert("Please enter a subject, question, and select at least one topic.");
             return;
@@ -94,24 +96,48 @@ const Dashboard = () => {
                 alert(`Question sent via ${isEmail ? "Email" : "Teams"}!`);
                 setQuestion("");
                 setSubject("");
-            } else if (response.status === 400) {
-                alert(response.data.problem);
             } else {
                 alert("Failed to send question.");
             }
         } catch (error) {
+            if (error.response.status === 400) {
+                alert(error.response.data.problem);
+                return;
+            }
+
             console.error("Error sending question:", error);
             alert("Error sending question. Please try again.");
         }
-    };
+    }, [question, selectedTags, subject, tags, teamId, onlyOnline, targetType, userId, token]);
 
-    const handleSendTeams = () => {
-        sendQuestion(false);
-    };
+    const handleSendTeams = useCallback(() => {
+        if (teamsTimeoutRef.current) {
+            clearTimeout(teamsTimeoutRef.current);
+        }
+        teamsTimeoutRef.current = setTimeout(() => {
+            sendQuestion(false);
+        }, 500);
+    }, [sendQuestion]);
 
-    const handleSendEmail = () => {
-        sendQuestion(true);
-    };
+    const handleSendEmail = useCallback(() => {
+        if (emailTimeoutRef.current) {
+            clearTimeout(emailTimeoutRef.current);
+        }
+        emailTimeoutRef.current = setTimeout(() => {
+            sendQuestion(true);
+        }, 500);
+    }, [sendQuestion]);
+
+    useEffect(() => {
+        return () => {
+            if (teamsTimeoutRef.current) {
+                clearTimeout(teamsTimeoutRef.current);
+            }
+            if (emailTimeoutRef.current) {
+                clearTimeout(emailTimeoutRef.current);
+            }
+        };
+    }, []);
 
     return (
         <div className="enableer-dashboard">
