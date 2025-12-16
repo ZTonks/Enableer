@@ -257,5 +257,52 @@ namespace GraphTeamsTag.Controllers
                 return this.StatusCode(500);
             }
         }
+
+        /// <summary>
+        /// Duplicates tag naming it as {tag} (1).
+        /// </summary>
+        /// <param name="ssoToken">Token to be exchanged.</param>
+        /// <param name="teamId">Id of team.</param>
+        /// <param name="tagId">Id of tag to be duplicated.</param>
+        /// <returns></returns>
+        [HttpPost("duplicate")]
+        public async Task<IActionResult> DuplicateTag(
+            [FromQuery] string ssoToken, 
+            [FromQuery] string teamId,
+            [FromQuery] string tagId)
+        {
+            try
+            {
+                var token = await SSOAuthHelper.GetAccessTokenOnBehalfUserAsync(_configuration, _httpClientFactory, _httpContextAccessor, ssoToken);
+                var graphClient = SimpleGraphClient.GetGraphClient(token);
+
+                var team = graphClient.Teams[teamId];
+
+                var tag = team.Tags[tagId].GetAsync();
+                var tagMembers = team.Tags[tagId].Members.GetAsync();
+
+                await Task.WhenAll(tag, tagMembers);
+
+                if (tag.Result is null)
+                {
+                    return BadRequest();
+                }
+
+                var tagPost = tag.Result;
+
+                tagPost.DisplayName += " (1)";
+                tagPost.Description = tag.Result.Description;
+                tagPost.Members ??= [];
+                tagPost.Members.AddRange(tagMembers.Result.Value);
+
+                await team.Tags.PostAsync(tagPost);
+
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                return this.StatusCode(500);
+            }
+        }
     }
 }
