@@ -2,8 +2,8 @@
 using GraphTeamsTag.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Graph;
+using Microsoft.Graph.Me.SendMail;
 using Microsoft.Graph.Models;
-using System.Reflection.Metadata.Ecma335;
 
 namespace GraphTeamsTag.Controllers
 {
@@ -78,6 +78,8 @@ namespace GraphTeamsTag.Controllers
 
                 foreach (var member in members)
                 {
+                    // TODO, this could probably be improved using a filter to limit the (N+1)-ness of this query
+                    // https://stackoverflow.com/questions/77505096/microsoft-graph-api-get-a-list-of-users-by-ids
                     var userPresence = await graphClient.Users[member.UserId].Presence.GetAsync();
 
                     if (userPresence is null)
@@ -104,7 +106,45 @@ namespace GraphTeamsTag.Controllers
 
             if (request.Email)
             {
-                // ZT TODO
+                var userEmails = new List<string>();
+                foreach (var member in members)
+                {
+                    // TODO, this could probably be improved using a filter to limit the (N+1)-ness of this query
+                    // https://stackoverflow.com/questions/77505096/microsoft-graph-api-get-a-list-of-users-by-ids
+                    var user = await graphClient.Users[member.UserId].GetAsync((options) =>
+                    {
+                        options.QueryParameters.Select = ["UserPrincipalName"];
+                    });
+
+                    if (user != null && user.UserPrincipalName != null)
+                    {
+                        userEmails.Add(user.UserPrincipalName);
+                    }
+                }
+
+                var email = new SendMailPostRequestBody
+                {
+                    Message = new Message
+                    {
+                        Subject = $"Call for aid - {request.QuestionTopic} - {string.Join(", ", request.Tags)}",
+                        Body = new ItemBody
+                        {
+                            ContentType = BodyType.Text,
+                            Content = request.Question,
+                        },
+                        ToRecipients = userEmails.Select(ue => new Recipient
+                        {
+                            EmailAddress = new EmailAddress()
+                            {
+                                Address = ue
+                            }
+                        }).ToList(),
+                    },
+                    SaveToSentItems = true,
+                };
+
+                await graphClient.Me.SendMail.PostAsync(email);
+
                 return Ok();
             }
 
