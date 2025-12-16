@@ -133,11 +133,11 @@ namespace GraphTeamsTag.Controllers
                 {
                     Message = new Message
                     {
-                        Subject = $"Call for aid - {request.QuestionTopic} - {string.Join(", ", request.Tags.Select(t => t.Name))}",
+                        Subject = $"Enableer call for aid - {request.QuestionTopic} - {string.Join(", ", request.Tags.Select(t => t.Name))}",
                         Body = new ItemBody
                         {
                             ContentType = BodyType.Text,
-                            Content = request.Question,
+                            Content = $"{request.Question}\n\nSent by Enableer to the {string.Join(", ", request.Tags.Select(t => t.Name))} tag(s).",
                         },
                         ToRecipients = userEmails.Select(ue => new Recipient
                         {
@@ -165,7 +165,7 @@ namespace GraphTeamsTag.Controllers
 
             if (chatType == ChatType.Group)
             {
-                chat.Topic = request.QuestionTopic;
+                chat.Topic = $"Enableer call for aid - {request.QuestionTopic} - {string.Join(", ", request.Tags.Select(t => t.Name))}";
 
                 foreach (var member in members)
                 {
@@ -208,13 +208,14 @@ namespace GraphTeamsTag.Controllers
             });
 
             var chatResponse = await graphClient.Chats.PostAsync(chat);
+            var newLineSanitizedQuestion = request.Question.Replace("\n", "<br/>");
 
             var chatMessage = new ChatMessage
             {
                 Body = new ItemBody
                 {
-                    Content = request.Question,
-                    ContentType = BodyType.Text,
+                    Content = $"{newLineSanitizedQuestion}<br/><br/>Sent by Enableer to the {string.Join(", ", request.Tags.Select(t => t.Name))} tag(s).",
+                    ContentType = BodyType.Html,
                 }
             };
             
