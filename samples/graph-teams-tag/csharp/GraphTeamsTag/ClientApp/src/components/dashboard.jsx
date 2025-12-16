@@ -95,7 +95,7 @@ const Dashboard = () => {
             const response = await axios.post(`/api/questions?ssoToken=${token}`, payload);
             
             if (response.status === 200) {
-                alert(`Question sent via ${isEmail ? "Email" : "Teams"}!`);
+                alert(`Question sent via ${isEmail ? "Email" : "Teams"}! Remember to send Lattice feedback if the answers were helpful.`);
                 setQuestion("");
                 setSubject("");
             } else {
