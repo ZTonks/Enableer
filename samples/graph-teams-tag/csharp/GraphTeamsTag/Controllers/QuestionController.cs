@@ -198,13 +198,13 @@ namespace GraphTeamsTag.Controllers
             chat.Members.Add(new AadUserConversationMember
             {
                 Roles = new List<string>()
-            {
-                "owner"
-            },
+                {
+                    "owner"
+                },
                 AdditionalData = new Dictionary<string, object>()
-            {
-                {"user@odata.bind", $"https://graph.microsoft.com/v1.0/users('{request.RequesterUserId}')"}
-            }
+                {
+                    {"user@odata.bind", $"https://graph.microsoft.com/v1.0/users('{request.RequesterUserId}')"}
+                }
             });
 
             var chatResponse = await graphClient.Chats.PostAsync(chat);
