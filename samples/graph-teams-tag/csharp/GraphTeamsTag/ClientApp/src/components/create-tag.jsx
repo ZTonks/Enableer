@@ -54,7 +54,10 @@ const CreateTag = props => {
     // Handler when user selects members.
     const onUpdateMembers = () => {
         let exisitingMembersId = membersToAdd.map(member => member.userId);
-        microsoftTeams.people.selectPeople({ setSelected: exisitingMembersId }).then((peoples) => {
+        microsoftTeams.people.selectPeople({ 
+            setSelected: exisitingMembersId,
+            openOrgWideSearchInChatOrChannel: true 
+        }).then((peoples) => {
             let members = [];
             peoples.forEach((people) => {
                 members.push({
@@ -64,6 +67,8 @@ const CreateTag = props => {
                 });
             });
             setMembersToAdd(members);
+        }).catch((error) => {
+            console.error("Failed to select people:", error);
         });
     }
 

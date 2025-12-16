@@ -74,7 +74,10 @@ const ViewEditTag = props => {
     // Handler when user selects to add new member.
     const onUpdateMembers = () => {
         let existingMembers = membersToAdd.map(member => member.userId);
-        microsoftTeams.people.selectPeople({ setSelected: existingMembers }).then((peoples) => {
+        microsoftTeams.people.selectPeople({ 
+            setSelected: existingMembers,
+            openOrgWideSearchInChatOrChannel: true 
+        }).then((peoples) => {
             let members = [];
             peoples.forEach((people) => {
                 
@@ -99,6 +102,8 @@ const ViewEditTag = props => {
             });
 
             setMembersToAdd(members);
+        }).catch((error) => {
+            console.error("Failed to select people:", error);
         });
     }
 
