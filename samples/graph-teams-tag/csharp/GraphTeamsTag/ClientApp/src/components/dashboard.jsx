@@ -222,7 +222,13 @@ const Dashboard = () => {
                             <select
                                 className="enableer-select"
                                 value={targetType}
-                                onChange={(e) => setTargetType(e.target.value)}
+                                onChange={(e) => {
+                                    setTargetType(e.target.value);
+                                    if (e.target.value === "0") {
+                                        // By default if one person is being randomly selected, we should pick someone online
+                                        setOnlyOnline(true);
+                                    }
+                                }}
                             >
                                 <option value="1">All people with tag</option>
                                 <option value="0">One person with tag</option>
