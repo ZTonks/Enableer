@@ -8,6 +8,7 @@ import { useNavigate } from "react-router-dom";
 import * as microsoftTeams from "@microsoft/teams-js";
 import axios from "axios";
 import "../style/style.css";
+import logo from "../assets/logo.png";
 
 const Dashboard = () => {
     const navigate = useNavigate();
@@ -107,6 +108,7 @@ const Dashboard = () => {
             </div>
             
             <div className="enableer-content">
+                <img src={logo} alt="Enableer Logo" style={{ maxWidth: "200px", marginBottom: "20px" }} />
                 <div className="enableer-logo">Enableer</div>
                 
                 <div className="enableer-input-container">
