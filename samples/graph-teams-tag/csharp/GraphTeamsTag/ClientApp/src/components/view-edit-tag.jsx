@@ -272,7 +272,7 @@ const ViewEditTag = props => {
                 <ChevronStartIcon className="manage-icons" onClick={props.onBackClick} />
                 <Text size="large" content="Tag Details:" weight="semibold" />
             </Flex>
-            <Text temporary content="(*To update any field make sure to click on update button)" />
+            <Text temporary content="(*To update any field, ensure you click update)" />
             {renderTagInformation()}
 
             {renderBasedOnLoadingState()}
