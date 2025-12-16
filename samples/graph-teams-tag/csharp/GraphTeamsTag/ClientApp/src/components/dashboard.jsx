@@ -13,7 +13,7 @@ const Dashboard = () => {
     const navigate = useNavigate();
     const [question, setQuestion] = useState("");
     const [subject, setSubject] = useState("");
-    const [selectedTag, setSelectedTag] = useState("");
+    const [selectedTags, setSelectedTags] = useState([]);
     const [onlyOnline, setOnlyOnline] = useState(false);
     const [tags, setTags] = useState([]);
     const [teamId, setTeamId] = useState("");
@@ -55,13 +55,13 @@ const Dashboard = () => {
     };
 
     const sendQuestion = async (isEmail) => {
-        if (!question || !selectedTag || !subject) {
-            alert("Please enter a subject, question, and select a topic.");
+        if (!question || !selectedTags || !selectedTags.length || !subject) {
+            alert("Please enter a subject, question, and select at least one topic.");
             return;
         }
 
         const payload = {
-            Tag: selectedTag,
+            Tags: selectedTags,
             QuestionTopic: subject,
             Question: question,
             TeamId: teamId,
@@ -79,6 +79,8 @@ const Dashboard = () => {
                 alert(`Question sent via ${isEmail ? "Email" : "Teams"}!`);
                 setQuestion("");
                 setSubject("");
+            } else if (response.status === 400) {
+                alert(response.data.problem);
             } else {
                 alert("Failed to send question.");
             }
@@ -124,10 +126,14 @@ const Dashboard = () => {
                     
                     <div className="enableer-controls">
                         <div className="enableer-controls-left">
-                            <select 
+                            <select
                                 className="enableer-select"
-                                value={selectedTag} 
-                                onChange={(e) => setSelectedTag(e.target.value)}
+                                multiple
+                                value={selectedTags}
+                                onChange={(e) => {
+                                    const selectedValues = Array.from(e.target.selectedOptions, option => option.value);
+                                    setSelectedTags(selectedValues);
+                                }}
                             >
                                 <option value="" disabled>Select a topic</option>
                                 {tags.map(tag => (
