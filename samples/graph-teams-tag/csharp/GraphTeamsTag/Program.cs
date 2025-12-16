@@ -1,5 +1,6 @@
 using GraphTeamsTag.Helper;
 using GraphTeamsTag.Models.Configuration;
+using GraphTeamsTag.Services;
 using GraphTeamsTag.Provider;
 using Microsoft.AspNetCore.SpaServices.ReactDevelopmentServer;
 
@@ -15,6 +16,8 @@ builder.Services.AddTransient<SimpleBetaGraphClient>();
 
 // Helpet
 builder.Services.AddTransient<GraphHelper>();
+builder.Services.AddSingleton<LeaderboardService>();
+builder.Services.AddSingleton<QuestionHistoryService>();
 
 // Adds application configuration settings to specified IServiceCollection.
 builder.Services.AddOptions<AzureSettings>()

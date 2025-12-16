@@ -21,6 +21,7 @@ const Dashboard = () => {
     const [userId, setUserId] = useState("");
     const [token, setToken] = useState("");
     const [targetType, setTargetType] = useState("1");
+    const [questionHistory, setQuestionHistory] = useState([]);
     
     useEffect(() => {
         const initTeams = async () => {
@@ -53,6 +54,10 @@ const Dashboard = () => {
 
     const handleConfigureTags = () => {
         navigate("/manage-tags");
+    };
+
+    const handleLeaderboard = () => {
+        navigate("/leaderboard");
     };
 
     const sendQuestion = async (isEmail) => {
@@ -102,6 +107,9 @@ const Dashboard = () => {
     return (
         <div className="enableer-dashboard">
             <div className="enableer-header">
+                <button className="configure-button" onClick={handleLeaderboard} style={{marginRight: '10px'}}>
+                    Leaderboard
+                </button>
                 <button className="configure-button" onClick={handleConfigureTags}>
                     Configure Tags
                 </button>
@@ -117,7 +125,6 @@ const Dashboard = () => {
                         placeholder="Subject"
                         value={subject}
                         onChange={(e) => setSubject(e.target.value)}
-                        style={{ marginBottom: "10px", width: "100%", padding: "10px", borderRadius: "4px", border: "1px solid #ccc" }}
                     />
                     <textarea 
                         className="enableer-textarea" 
@@ -135,6 +142,16 @@ const Dashboard = () => {
                                 onChange={(e) => {
                                     const selectedValues = Array.from(e.target.selectedOptions, option => option.value);
                                     setSelectedTags(selectedValues);
+                                    
+                                    // Fetch history for the first selected tag
+                                    if (selectedValues.length > 0) {
+                                        const tagId = selectedValues[0];
+                                        axios.get(`/api/history/by-tag/${tagId}`)
+                                            .then(res => setQuestionHistory(res.data))
+                                            .catch(err => console.error(err));
+                                    } else {
+                                        setQuestionHistory([]);
+                                    }
                                 }}
                             >
                                 <option value="" disabled>Select a topic</option>
@@ -147,7 +164,6 @@ const Dashboard = () => {
                                 className="enableer-select"
                                 value={targetType}
                                 onChange={(e) => setTargetType(e.target.value)}
-                                style={{ marginTop: "10px" }}
                             >
                                 <option value="1">All people with tag</option>
                                 <option value="0">One person with tag</option>
@@ -173,6 +189,45 @@ const Dashboard = () => {
                         </div>
                     </div>
                 </div>
+                
+                {questionHistory.length > 0 && (
+                    <div style={{ marginTop: '20px', width: '100%' }}>
+                        <h3 style={{ marginBottom: '10px' }}>Previous Questions</h3>
+                        {questionHistory.map((q) => (
+                            <div key={q.id} style={{ 
+                                padding: '15px', 
+                                marginBottom: '10px', 
+                                backgroundColor: 'white', 
+                                borderRadius: '8px',
+                                border: '1px solid #ddd',
+                                cursor: 'pointer'
+                            }} onClick={() => {
+                                // Toggle details or similar if needed, for now just show content
+                            }}>
+                                <div style={{ fontWeight: 'bold' }}>{q.questionTopic}</div>
+                                <div style={{ marginTop: '5px' }}>{q.questionContent}</div>
+                                {q.chatWebUrl && (
+                                    <a 
+                                        href={q.chatWebUrl} 
+                                        target="_blank" 
+                                        rel="noopener noreferrer"
+                                        className="enableer-button enableer-button-primary"
+                                        style={{ 
+                                            display: 'inline-block', 
+                                            marginTop: '10px', 
+                                            textDecoration: 'none', 
+                                            fontSize: '0.9rem',
+                                            padding: '5px 10px'
+                                        }}
+                                        onClick={(e) => e.stopPropagation()}
+                                    >
+                                        Join Chat
+                                    </a>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                )}
             </div>
         </div>
     );
