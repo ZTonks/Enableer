@@ -6,6 +6,7 @@ namespace GraphTeamsTag.Controllers
 {
     using GraphTeamsTag.Helper;
     using GraphTeamsTag.Models;
+    using GraphTeamsTag.Provider;
     using Microsoft.AspNetCore.Mvc;
     using Microsoft.Graph;
     using Microsoft.Graph.Models;
@@ -27,33 +28,27 @@ namespace GraphTeamsTag.Controllers
         private readonly GraphHelper graphHelper;
 
         /// <summary>
+        /// Graph client factory for creating GraphServiceClient instances.
+        /// </summary>
+        private readonly IGraphClientFactory _graphClientFactory;
+
+        /// <summary>
         /// Stores the Azure configuration values.
         /// </summary>
         private readonly IConfiguration _configuration;
-
-        /// <summary>
-        /// HttpClientFactory dependency for the app.
-        /// </summary>
-        private readonly IHttpClientFactory _httpClientFactory;
-
-        /// <summary>
-        /// Used to access the http context from the request.
-        /// </summary>
-        private readonly IHttpContextAccessor _httpContextAccessor;
 
         /// <summary>
         /// client Id for the application.
         /// </summary>
         private static readonly string ClientIdConfigurationSettingsKey = "AzureAd:ClientId";
 
-        public TeamTagController(ILogger<TeamTagController> logger, IConfiguration configuration, IHttpClientFactory httpClientFactory,
-            IHttpContextAccessor httpContextAccessor, GraphHelper graphHelper)
+        public TeamTagController(ILogger<TeamTagController> logger, IConfiguration configuration,
+            GraphHelper graphHelper, IGraphClientFactory graphClientFactory)
         {
             _logger = logger;
             _configuration = configuration;
-            _httpClientFactory = httpClientFactory;
-            _httpContextAccessor = httpContextAccessor;
             this.graphHelper = graphHelper;
+            _graphClientFactory = graphClientFactory;
         }
 
         /// <summary>
@@ -106,8 +101,7 @@ namespace GraphTeamsTag.Controllers
         {
             try
             {
-                var token = await SSOAuthHelper.GetAccessTokenOnBehalfUserAsync(_configuration, _httpClientFactory, _httpContextAccessor, ssoToken);
-                var graphClient = SimpleGraphClient.GetGraphClient(token);
+                var graphClient = await _graphClientFactory.CreateGraphClientAsync(ssoToken);
                 var teamworkTag = await graphClient.Teams[teamId].Tags[teamTagId]
                 .GetAsync();
 
@@ -137,8 +131,7 @@ namespace GraphTeamsTag.Controllers
         {
             try
             {
-                var token = await SSOAuthHelper.GetAccessTokenOnBehalfUserAsync(_configuration, _httpClientFactory, _httpContextAccessor, ssoToken);
-                var graphClient = SimpleGraphClient.GetGraphClient(token);
+                var graphClient = await _graphClientFactory.CreateGraphClientAsync(ssoToken);
 
                 var tagsResponse = await graphClient.Teams[teamId].Tags.GetAsync();
                 var teamworkTagList = new List<TeamTag>();
@@ -204,8 +197,7 @@ namespace GraphTeamsTag.Controllers
         {
             try
             {
-                var token = await SSOAuthHelper.GetAccessTokenOnBehalfUserAsync(_configuration, _httpClientFactory, _httpContextAccessor, ssoToken);
-                var graphClient = SimpleGraphClient.GetGraphClient(token);
+                var graphClient = await _graphClientFactory.CreateGraphClientAsync(ssoToken);
                 var membersResponse = await graphClient.Teams[teamId].Tags[tagId].Members
                  .GetAsync();
 
@@ -246,11 +238,56 @@ namespace GraphTeamsTag.Controllers
         {
             try
             {
-                var token = await SSOAuthHelper.GetAccessTokenOnBehalfUserAsync(_configuration, _httpClientFactory, _httpContextAccessor, ssoToken);
-                var graphClient = SimpleGraphClient.GetGraphClient(token);
+                var graphClient = await _graphClientFactory.CreateGraphClientAsync(ssoToken);
                 await graphClient.Teams[teamId].Tags[tagId]
                 .DeleteAsync();
                 return this.NoContent();
+            }
+            catch (Exception ex)
+            {
+                return this.StatusCode(500);
+            }
+        }
+
+        /// <summary>
+        /// Duplicates tag naming it as {tag} (1).
+        /// </summary>
+        /// <param name="ssoToken">Token to be exchanged.</param>
+        /// <param name="teamId">Id of team.</param>
+        /// <param name="tagId">Id of tag to be duplicated.</param>
+        /// <returns></returns>
+        [HttpPost("duplicate")]
+        public async Task<IActionResult> DuplicateTag(
+            [FromQuery] string ssoToken, 
+            [FromQuery] string teamId,
+            [FromQuery] string tagId)
+        {
+            try
+            {
+                var graphClient = await _graphClientFactory.CreateGraphClientAsync(ssoToken);
+
+                var team = graphClient.Teams[teamId];
+
+                var tag = team.Tags[tagId].GetAsync();
+                var tagMembers = team.Tags[tagId].Members.GetAsync();
+
+                await Task.WhenAll(tag, tagMembers);
+
+                if (tag.Result is null)
+                {
+                    return BadRequest();
+                }
+
+                var tagPost = tag.Result;
+
+                tagPost.DisplayName += " (1)";
+                tagPost.Description = tag.Result.Description;
+                tagPost.Members ??= [];
+                tagPost.Members.AddRange(tagMembers.Result.Value);
+
+                await team.Tags.PostAsync(tagPost);
+
+                return NoContent();
             }
             catch (Exception ex)
             {

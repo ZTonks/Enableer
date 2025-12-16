@@ -17,7 +17,7 @@ const ViewEditTag = props => {
     const [membersToRemove, setMembersToRemove] = useState([]);
     const [editedTagName, setEditedTagName] = useState("");
     const [editedDescription, setEditedDescription] = useState("");
-    const [isNoteDisabled, setIsNoteDisabled] = useState(true);
+    const [isUpdateDisabled, setIsUpdateDisabled] = useState(true);
     const [teamId, setTeamId] = useState("");
     const [isUpdateButtonLoading, setIsUpdateButtonLoading] = useState(false);
     const [isMemberLoading, setIsMemberLoading] = useState(true);
@@ -51,13 +51,13 @@ const ViewEditTag = props => {
     // Handler when display name is updated.
     const onDisplayNameUpdate = (updatedText) => {
         setEditedTagName(updatedText.trim());
-        setIsNoteDisabled(false);
+        setIsUpdateDisabled(false);
     }
 
     // Handler when description is updated.
     const onDescriptionUpdate = (updatedText) => {
         setEditedDescription(updatedText.trim());
-        setIsNoteDisabled(false);
+        setIsUpdateDisabled(false);
     }
 
     // Handler when user remove member.
@@ -68,13 +68,17 @@ const ViewEditTag = props => {
             let tempMembersToRemoveList = [...membersToRemove];
             tempMembersToRemoveList.push(memberToRemove);
             setMembersToRemove(tempMembersToRemoveList);
+            setIsUpdateDisabled(false);
         }
     }
 
     // Handler when user selects to add new member.
     const onUpdateMembers = () => {
         let existingMembers = membersToAdd.map(member => member.userId);
-        microsoftTeams.people.selectPeople({ setSelected: existingMembers }).then((peoples) => {
+        microsoftTeams.people.selectPeople({ 
+            setSelected: existingMembers,
+            openOrgWideSearchInChatOrChannel: true 
+        }).then((peoples) => {
             let members = [];
             peoples.forEach((people) => {
                 
@@ -94,11 +98,13 @@ const ViewEditTag = props => {
                         displayName: people.displayName
                     });
 
-                    setIsNoteDisabled(false);
+                    setIsUpdateDisabled(false);
                 }
             });
 
             setMembersToAdd(members);
+        }).catch((error) => {
+            console.error("Failed to select people:", error);
         });
     }
 
@@ -129,7 +135,7 @@ const ViewEditTag = props => {
             tempMemberToAddList.splice(memberIndex, 1);
             
             setMembersToAdd(tempMemberToAddList);
-            setIsNoteDisabled(false);
+            setIsUpdateDisabled(false);
         }
         else {
             let tempMemberToRemoveList = [...membersToRemove]
@@ -137,7 +143,7 @@ const ViewEditTag = props => {
             tempMemberToRemoveList.splice(memberIndex, 1);
             
             setMembersToRemove(tempMemberToRemoveList);
-            setIsNoteDisabled(false);
+            setIsUpdateDisabled(false);
         }
     }
 
@@ -274,7 +280,7 @@ const ViewEditTag = props => {
             {props.dashboardState === DashboardState.Edit && <Flex>
                 <FlexItem push>
                     <div>
-                        {!isNoteDisabled && <Flex gap="gap.medium">
+                        {!isUpdateDisabled && <Flex gap="gap.medium">
                             <Text content='Click on "Update" button to update the fields.' temporary error />
                             <Button content="Update" primary disabled={isUpdateButtonLoading} isUpdateButtonLoading={isUpdateButtonLoading} onClick={onUpdateButtonClick} className="enableer-button-primary" />
                         </Flex>}

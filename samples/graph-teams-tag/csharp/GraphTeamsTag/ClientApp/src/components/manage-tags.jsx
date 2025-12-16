@@ -6,6 +6,7 @@
 import React, { Component } from "react";
 import { useNavigate } from "react-router-dom";
 import { Text, Flex, FlexItem, Button, TrashCanIcon, EditIcon, EyeFriendlierIcon, Loader } from "@fluentui/react-northstar";
+import { CopySelectFilled } from "@fluentui/react-icons";
 import * as microsoftTeams from "@microsoft/teams-js";
 import axios from "axios";
 import ViewEditTag from "./view-edit-tag";
@@ -194,6 +195,17 @@ class ManageTagsContent extends Component {
         this.setState({ isLoading: false });
     }
 
+    onCopyTagClick = async (teamworkTag) => {
+        this.setState({ isLoading: true });
+        var response = await axios.post(`api/teamtag/duplicate?ssoToken=${idToken}&teamId=${this.state.teamsContext.team.groupId}&tagId=${teamworkTag.id}`);
+
+        if (response.status === 204) {
+            await this.initializeData(this.state.teamsContext.team.groupId);
+        }
+
+        this.setState({ isLoading: false });
+    }
+
     // Renders the elements based on dashboard state.
     renderBasedOnDashboardState = () => {
         switch (this.state.dashboardState) {
@@ -233,7 +245,8 @@ class ManageTagsContent extends Component {
                     <Flex gap="gap.large">
                         <EyeFriendlierIcon className="manage-icons" onClick={() => { this.onViewClick(teamworkTag) }} />
                         <EditIcon className="manage-icons"  onClick={() => { this.onEditClick(teamworkTag) }}/>
-                        <TrashCanIcon className="manage-icons" onClick={() => { this.onDeleteTagClick(teamworkTag) } }/>
+                        <TrashCanIcon className="manage-icons" onClick={() => { this.onDeleteTagClick(teamworkTag) }}/>
+                        <CopySelectFilled className="manage-icons" onClick={() => { this.onCopyTagClick(teamworkTag) }}/>
                     </Flex>
                 </Flex.Item>
             </Flex>);
@@ -252,7 +265,7 @@ class ManageTagsContent extends Component {
                 </div>
             </FlexItem>
             <Flex vAlign="center"   >
-                <Text content="Manage Teams Tag" size="larger" weight="semibold" />
+                <Text content="Manage SME tags" size="larger" weight="semibold" />
                 <FlexItem push>
                     <Button primary content="Create new Tag" onClick={this.onCreateNewTagClick} className="enableer-button-primary" />
                 </FlexItem>

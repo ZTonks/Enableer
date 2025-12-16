@@ -3,7 +3,7 @@
 // Licensed under the MIT license.
 // </copyright>
 
-import React, { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import * as microsoftTeams from "@microsoft/teams-js";
 import axios from "axios";
@@ -15,6 +15,7 @@ const Dashboard = () => {
     const [question, setQuestion] = useState("");
     const [subject, setSubject] = useState("");
     const [selectedTags, setSelectedTags] = useState([]);
+    const [loading, setLoading] = useState(true);
     const [onlyOnline, setOnlyOnline] = useState(false);
     const [tags, setTags] = useState([]);
     const [teamId, setTeamId] = useState("");
@@ -23,7 +24,9 @@ const Dashboard = () => {
     const [targetType, setTargetType] = useState("1");
     const [questionHistory, setQuestionHistory] = useState([]);
     const [loadingSummary, setLoadingSummary] = useState(null); // chatId being summarized
-
+    const teamsTimeoutRef = useRef(null);
+    const emailTimeoutRef = useRef(null);
+    
     useEffect(() => {
         const initTeams = async () => {
             try {
@@ -43,6 +46,7 @@ const Dashboard = () => {
                     const response = await axios.get(`/api/teamtag/list?ssoToken=${authToken}&teamId=${currentTeamId}`);
                     if (response.status === 200) {
                         setTags(response.data);
+                        setLoading(false);
                     }
                 }
             } catch (error) {
@@ -79,14 +83,23 @@ const Dashboard = () => {
         navigate("/leaderboard");
     };
 
-    const sendQuestion = async (isEmail) => {
+    const sendQuestion = useCallback(async (isEmail) => {
         if (!question || !selectedTags || !selectedTags.length || !subject) {
             alert("Please enter a subject, question, and select at least one topic.");
             return;
         }
 
+        // Convert selectedTags (array of IDs) to TagDto objects
+        const tagDtos = selectedTags.map(tagId => {
+            const tag = tags.find(t => t.id === tagId);
+            return {
+                Id: tagId,
+                Name: tag.displayName
+            };
+        });
+
         const payload = {
-            Tags: selectedTags,
+            Tags: tagDtos,
             QuestionTopic: subject,
             Question: question,
             TeamId: teamId,
@@ -101,27 +114,51 @@ const Dashboard = () => {
             const response = await axios.post(`/api/questions?ssoToken=${token}`, payload);
             
             if (response.status === 200) {
-                alert(`Question sent via ${isEmail ? "Email" : "Teams"}!`);
+                alert(`Question sent via ${isEmail ? "Email" : "Teams"}! Remember to send Lattice feedback if the answers were helpful.`);
                 setQuestion("");
                 setSubject("");
-            } else if (response.status === 400) {
-                alert(response.data.problem);
             } else {
                 alert("Failed to send question.");
             }
         } catch (error) {
+            if (error.response.status === 400) {
+                alert(error.response.data.problem);
+                return;
+            }
+
             console.error("Error sending question:", error);
             alert("Error sending question. Please try again.");
         }
-    };
+    }, [question, selectedTags, subject, tags, teamId, onlyOnline, targetType, userId, token]);
 
-    const handleSendTeams = () => {
-        sendQuestion(false);
-    };
+    const handleSendTeams = useCallback(() => {
+        if (teamsTimeoutRef.current) {
+            clearTimeout(teamsTimeoutRef.current);
+        }
+        teamsTimeoutRef.current = setTimeout(() => {
+            sendQuestion(false);
+        }, 500);
+    }, [sendQuestion]);
 
-    const handleSendEmail = () => {
-        sendQuestion(true);
-    };
+    const handleSendEmail = useCallback(() => {
+        if (emailTimeoutRef.current) {
+            clearTimeout(emailTimeoutRef.current);
+        }
+        emailTimeoutRef.current = setTimeout(() => {
+            sendQuestion(true);
+        }, 500);
+    }, [sendQuestion]);
+
+    useEffect(() => {
+        return () => {
+            if (teamsTimeoutRef.current) {
+                clearTimeout(teamsTimeoutRef.current);
+            }
+            if (emailTimeoutRef.current) {
+                clearTimeout(emailTimeoutRef.current);
+            }
+        };
+    }, []);
 
     return (
         <div className="enableer-dashboard">
@@ -173,7 +210,10 @@ const Dashboard = () => {
                                     }
                                 }}
                             >
-                                <option value="" disabled>Select a topic</option>
+                                {loading 
+                                    ? <option key="banner" disabled value="">Loading tags...</option>
+                                    : <option key="banner" disabled value="">Select a topic</option>
+                                }
                                 {tags.map(tag => (
                                     <option key={tag.id} value={tag.id}>{tag.displayName}</option>
                                 ))}

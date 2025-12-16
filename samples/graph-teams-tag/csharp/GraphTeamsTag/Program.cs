@@ -14,6 +14,9 @@ builder.Services.AddControllers();
 
 builder.Services.AddTransient<SimpleBetaGraphClient>();
 
+// GraphClient factory
+builder.Services.AddScoped<IGraphClientFactory, GraphClientFactory>();
+
 // Helpet
 builder.Services.AddTransient<GraphHelper>();
 builder.Services.AddSingleton<LeaderboardService>();

@@ -1,5 +1,6 @@
 ﻿using GraphTeamsTag.Helper;
 using GraphTeamsTag.Models;
+using GraphTeamsTag.Provider;
 using GraphTeamsTag.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Graph;
@@ -12,25 +13,20 @@ namespace GraphTeamsTag.Controllers
     [ApiController]
     public class QuestionController : Controller
     {
-        private readonly IConfiguration _configuration;
         private readonly ILogger<QuestionController> _logger;
-        private readonly IHttpClientFactory _httpClientFactory;
-        private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly IGraphClientFactory _graphClientFactory;
         private readonly LeaderboardService _leaderboardService;
         private readonly QuestionHistoryService _historyService;
 
         public QuestionController(
             ILogger<QuestionController> logger,
-            IConfiguration configuration,
-            IHttpClientFactory httpClientFactory,
-            IHttpContextAccessor httpContextAccessor,
+            IGraphClientFactory graphClientFactory,
+            GraphHelper graphHelper,
             LeaderboardService leaderboardService,
             QuestionHistoryService historyService)
         {
-            _configuration = configuration;
-            _httpClientFactory = httpClientFactory;
-            _httpContextAccessor = httpContextAccessor;
             _logger = logger;
+            _graphClientFactory = graphClientFactory;
             _leaderboardService = leaderboardService;
             _historyService = historyService;
         }
@@ -40,14 +36,13 @@ namespace GraphTeamsTag.Controllers
             [FromQuery] string ssoToken,
             [FromBody] AskQuestionRequest request)
         {
-            var token = await SSOAuthHelper.GetAccessTokenOnBehalfUserAsync(_configuration, _httpClientFactory, _httpContextAccessor, ssoToken);
-            var graphClient = SimpleGraphClient.GetGraphClient(token);
+            var graphClient = await _graphClientFactory.CreateGraphClientAsync(ssoToken);
 
             var members = new List<TeamworkTagMember>();
 
             foreach (var tag in request.Tags)
             {
-                var membersResponse = await graphClient.Teams[request.TeamId].Tags[tag].Members.GetAsync();
+                var membersResponse = await graphClient.Teams[request.TeamId].Tags[tag.Id].Members.GetAsync();
 
                 if (membersResponse?.Value is null)
                 {
@@ -106,7 +101,7 @@ namespace GraphTeamsTag.Controllers
             {
                 return BadRequest(new
                 {
-                    Problem = "No members were eligible for all tags",
+                    Problem = "No members were eligible for all tags.",
                 });
             }
 
@@ -138,7 +133,7 @@ namespace GraphTeamsTag.Controllers
                 {
                     Message = new Message
                     {
-                        Subject = $"Call for aid - {request.QuestionTopic} - {string.Join(", ", request.Tags)}",
+                        Subject = $"Call for aid - {request.QuestionTopic} - {string.Join(", ", request.Tags.Select(t => t.Name))}",
                         Body = new ItemBody
                         {
                             ContentType = BodyType.Text,
@@ -171,30 +166,45 @@ namespace GraphTeamsTag.Controllers
             if (chatType == ChatType.Group)
             {
                 chat.Topic = request.QuestionTopic;
-            }
 
-            foreach (var member in members)
+                foreach (var member in members)
+                {
+                    chat.Members.Add(new AadUserConversationMember
+                    {
+                        AdditionalData = new Dictionary<string, object>()
+                    {
+                        {"user@odata.bind", $"https://graph.microsoft.com/v1.0/users('{member.UserId}')"}
+                    },
+                        Roles = new List<string> { "owner" }
+                    });
+                }
+            }
+            else
             {
+                // Randomly select a user to ask the question to
+                var random = new Random();
+                var randomIndex = random.Next(members.Count);
+
                 chat.Members.Add(new AadUserConversationMember
                 {
                     AdditionalData = new Dictionary<string, object>()
                     {
-                        {"user@odata.bind", $"https://graph.microsoft.com/v1.0/users('{member.UserId}')"}
+                        {"user@odata.bind", $"https://graph.microsoft.com/v1.0/users('{members[randomIndex].UserId}')"}
                     },
                     Roles = new List<string> { "owner" }
                 });
             }
-            
+
             chat.Members.Add(new AadUserConversationMember
             {
                 Roles = new List<string>()
-                {
-                    "owner"
-                },
+            {
+                "owner"
+            },
                 AdditionalData = new Dictionary<string, object>()
-                {
-                    {"user@odata.bind", $"https://graph.microsoft.com/v1.0/users('{request.RequesterUserId}')"}
-                }
+            {
+                {"user@odata.bind", $"https://graph.microsoft.com/v1.0/users('{request.RequesterUserId}')"}
+            }
             });
 
             var chatResponse = await graphClient.Chats.PostAsync(chat);
