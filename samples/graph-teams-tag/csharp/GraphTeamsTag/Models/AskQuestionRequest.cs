@@ -8,7 +8,7 @@ namespace GraphTeamsTag.Models;
 
 public class AskQuestionRequest : IValidatableObject
 {
-    public string[] Tags { get; set; }
+    public TagDto[] Tags { get; set; }
 
     public string QuestionTopic { get; set; }
 
@@ -29,14 +29,9 @@ public class AskQuestionRequest : IValidatableObject
 
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
     {
-        if (Tags.Length == 0)
+        if (Tags == null || Tags.Length == 0)
         {
             yield return new ValidationResult("Tags are required", new string[] { nameof(Tags) });
-        }
-
-        if (Tags.Any(string.IsNullOrWhiteSpace))
-        {
-            yield return new ValidationResult("Tag is required", new string[] { nameof(Tags) });
         }
 
         if (string.IsNullOrWhiteSpace(QuestionTopic))

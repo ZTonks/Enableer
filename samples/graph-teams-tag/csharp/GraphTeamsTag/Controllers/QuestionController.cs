@@ -48,7 +48,7 @@ namespace GraphTeamsTag.Controllers
 
             foreach (var tag in request.Tags)
             {
-                var membersResponse = await graphClient.Teams[request.TeamId].Tags[tag].Members.GetAsync();
+                var membersResponse = await graphClient.Teams[request.TeamId].Tags[tag.Id].Members.GetAsync();
 
                 if (membersResponse?.Value is null)
                 {
@@ -139,7 +139,7 @@ namespace GraphTeamsTag.Controllers
                 {
                     Message = new Message
                     {
-                        Subject = $"Call for aid - {request.QuestionTopic} - {string.Join(", ", request.Tags)}",
+                        Subject = $"Call for aid - {request.QuestionTopic} - {string.Join(", ", request.Tags.Select(t => t.Name))}",
                         Body = new ItemBody
                         {
                             ContentType = BodyType.Text,

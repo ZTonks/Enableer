@@ -39,7 +39,7 @@ namespace GraphTeamsTag.Services
         {
              var history = GetHistory();
              return history
-                .Where(q => q.Tags != null && q.Tags.Contains(tagId))
+                .Where(q => q.Tags != null && q.Tags.Select(t => t.Id).Contains(tagId))
                 .OrderByDescending(q => q.CreatedAt)
                 .Take(count)
                 .ToList();

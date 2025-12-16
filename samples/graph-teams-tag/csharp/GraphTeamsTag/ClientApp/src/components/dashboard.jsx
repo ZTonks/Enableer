@@ -66,8 +66,17 @@ const Dashboard = () => {
             return;
         }
 
+        // Convert selectedTags (array of IDs) to TagDto objects
+        const tagDtos = selectedTags.map(tagId => {
+            const tag = tags.find(t => t.id === tagId);
+            return {
+                Id: tagId,
+                Name: tag.displayName
+            };
+        });
+
         const payload = {
-            Tags: selectedTags,
+            Tags: tagDtos,
             QuestionTopic: subject,
             Question: question,
             TeamId: teamId,
